@@ -68,10 +68,21 @@ export const ensureUser = mutation({
 
     if (existing) return existing._id;
 
-    const username =
+    const baseUsername =
       identity.nickname ??
       identity.email?.split("@")[0] ??
-      `user-${Date.now()}`;
+      "user";
+    let username = baseUsername;
+    let suffix = 2;
+    while (
+      await ctx.db
+        .query("users")
+        .withIndex("by_username", (q) => q.eq("username", username))
+        .unique()
+    ) {
+      username = `${baseUsername}-${suffix}`;
+      suffix++;
+    }
     const displayName = identity.name ?? username;
 
     return await ctx.db.insert("users", {

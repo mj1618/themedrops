@@ -4,11 +4,27 @@ import { query, mutation } from "./_generated/server";
 export const listByTheme = query({
   args: { themeId: v.id("themes") },
   handler: async (ctx, args) => {
-    return await ctx.db
+    const comments = await ctx.db
       .query("comments")
       .withIndex("by_theme", (q) => q.eq("themeId", args.themeId))
       .order("asc")
       .take(100);
+
+    return Promise.all(
+      comments.map(async (comment) => {
+        const user = await ctx.db.get(comment.userId);
+        return {
+          ...comment,
+          author: user
+            ? {
+                username: user.username,
+                displayName: user.displayName,
+                avatarUrl: user.avatarUrl,
+              }
+            : null,
+        };
+      })
+    );
   },
 });
 

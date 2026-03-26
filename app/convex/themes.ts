@@ -17,30 +17,59 @@ export const list = query({
 export const getBySlug = query({
   args: { slug: v.string() },
   handler: async (ctx, args) => {
-    return await ctx.db
+    const theme = await ctx.db
       .query("themes")
       .withIndex("by_slug", (q) => q.eq("slug", args.slug))
       .unique();
+    if (!theme) return null;
+    if (!theme.isPublic) {
+      const identity = await ctx.auth.getUserIdentity();
+      if (!identity) return null;
+      const user = await ctx.db
+        .query("users")
+        .withIndex("by_token", (q) =>
+          q.eq("tokenIdentifier", identity.tokenIdentifier)
+        )
+        .unique();
+      if (!user || theme.authorId !== user._id) return null;
+    }
+    return theme;
   },
 });
 
 export const getByAuthor = query({
   args: { authorId: v.id("users") },
   handler: async (ctx, args) => {
-    return await ctx.db
+    const identity = await ctx.auth.getUserIdentity();
+    let currentUserId = null;
+    if (identity) {
+      const user = await ctx.db
+        .query("users")
+        .withIndex("by_token", (q) =>
+          q.eq("tokenIdentifier", identity.tokenIdentifier)
+        )
+        .unique();
+      if (user) currentUserId = user._id;
+    }
+
+    const themes = await ctx.db
       .query("themes")
       .withIndex("by_author", (q) => q.eq("authorId", args.authorId))
       .take(50);
+
+    if (currentUserId === args.authorId) return themes;
+    return themes.filter((t) => t.isPublic);
   },
 });
 
 export const search = query({
   args: { name: v.string() },
   handler: async (ctx, args) => {
-    return await ctx.db
+    const results = await ctx.db
       .query("themes")
       .withSearchIndex("search_name", (q) => q.search("name", args.name))
-      .take(20);
+      .take(40);
+    return results.filter((t) => t.isPublic).slice(0, 20);
   },
 });
 
