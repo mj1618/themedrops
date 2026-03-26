@@ -5,6 +5,7 @@ import { api } from "../../convex/_generated/api";
 import { Doc } from "../../convex/_generated/dataModel";
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
+import AuthControls from "./components/AuthControls";
 
 const COLOR_KEYS = [
   "background",
@@ -212,6 +213,9 @@ export default function Home() {
         />
 
         <div className="relative max-w-6xl mx-auto px-6 py-16 sm:py-20">
+          <div className="absolute top-6 right-6">
+            <AuthControls />
+          </div>
           <div className="max-w-2xl">
             <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-gray-900">
               Theme

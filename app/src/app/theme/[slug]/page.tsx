@@ -4,6 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { useState } from "react";
+import AuthControls from "../../components/AuthControls";
 const COLOR_LABELS: { key: string; label: string }[] = [
   { key: "background", label: "Background" },
   { key: "foreground", label: "Foreground" },
@@ -180,6 +181,7 @@ export default function ThemeDetailPage() {
           >
             ThemeDrops
           </a>
+          <AuthControls />
         </div>
       </header>
 
