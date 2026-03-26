@@ -2,6 +2,7 @@
 
 import { usePaginatedQuery, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { Doc } from "../../convex/_generated/dataModel";
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 
@@ -27,18 +28,10 @@ function ThemeCard({
   theme,
   index,
 }: {
-  theme: {
-    _id: string;
-    name: string;
-    slug: string;
-    description?: string;
-    authorId: string;
-    starCount: number;
-    colors: Record<string, string | undefined>;
-  };
+  theme: Doc<"themes">;
   index: number;
 }) {
-  const author = useQuery(api.users.get, { id: theme.authorId as never });
+  const author = useQuery(api.users.get, { id: theme.authorId });
   const colors = theme.colors;
   const primaryColor = colors.primary ?? colors.accent ?? "#6366f1";
   const bgColor = colors.background ?? "#ffffff";
@@ -307,7 +300,7 @@ export default function Home() {
             {themes.map((theme, i) => (
               <ThemeCard
                 key={theme._id}
-                theme={theme as never}
+                theme={theme}
                 index={i}
               />
             ))}
