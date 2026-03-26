@@ -83,3 +83,20 @@ Wire up the `Password` provider, swap the client provider, and add a sign-in/sig
 - Added `AuthControls` to the theme detail page header bar next to the "ThemeDrops" link
 - TypeScript compiles cleanly, Next.js build succeeds with no errors
 - No new npm dependencies added
+
+## Review notes (2026-03-26)
+
+### Bug found and fixed
+**Schema mismatch broke sign-up**: The `users` table in `schema.ts` did not include the `email` field (and other fields) that `@convex-dev/auth`'s `authTables` expects. The Password provider's profile function returns an `email` field, but the schema rejected it with: *"Object contains extra field `email` that is not in the validator."*
+
+**Fix**: Updated `convex/schema.ts` to merge the `authTables` user fields (`email`, `name`, `image`, `emailVerificationTime`, `phone`, `phoneVerificationTime`, `isAnonymous`) into the custom users table definition, and made custom fields (`username`, `displayName`, `tokenIdentifier`) optional to remain compatible with users created directly by the auth library.
+
+### Browser testing results
+- Sign-up with username + password: PASS
+- Sign-out clears session: PASS
+- Sign-in with existing credentials: PASS
+- User display name + Sign out button shown in header: PASS
+- Theme detail page shows Fork button when authenticated: PASS
+- Commenting works for authenticated users: PASS
+- AuthControls present on both homepage and detail page: PASS
+- TypeScript compiles cleanly, Next.js build succeeds

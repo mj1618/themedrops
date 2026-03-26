@@ -6,12 +6,23 @@ export default defineSchema({
   ...authTables,
 
   users: defineTable({
-    username: v.string(),
-    displayName: v.string(),
+    // Fields from authTables (required by @convex-dev/auth)
+    name: v.optional(v.string()),
+    image: v.optional(v.string()),
+    email: v.optional(v.string()),
+    emailVerificationTime: v.optional(v.number()),
+    phone: v.optional(v.string()),
+    phoneVerificationTime: v.optional(v.number()),
+    isAnonymous: v.optional(v.boolean()),
+    // Custom fields
+    username: v.optional(v.string()),
+    displayName: v.optional(v.string()),
     bio: v.optional(v.string()),
     avatarUrl: v.optional(v.string()),
-    tokenIdentifier: v.string(),
+    tokenIdentifier: v.optional(v.string()),
   })
+    .index("email", ["email"])
+    .index("phone", ["phone"])
     .index("by_username", ["username"])
     .index("by_token", ["tokenIdentifier"]),
 
