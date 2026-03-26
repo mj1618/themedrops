@@ -7,9 +7,8 @@ export const list = query({
   handler: async (ctx, args) => {
     return await ctx.db
       .query("themes")
-      .withIndex("by_star_count")
+      .withIndex("by_public_and_star_count", (q) => q.eq("isPublic", true))
       .order("desc")
-      .filter((q) => q.eq(q.field("isPublic"), true))
       .paginate(args.paginationOpts);
   },
 });
@@ -59,6 +58,26 @@ export const getByAuthor = query({
 
     if (currentUserId === args.authorId) return themes;
     return themes.filter((t) => t.isPublic);
+  },
+});
+
+export const getBasicInfo = query({
+  args: { id: v.id("themes") },
+  handler: async (ctx, args) => {
+    const theme = await ctx.db.get(args.id);
+    if (!theme) return null;
+    if (!theme.isPublic) {
+      const identity = await ctx.auth.getUserIdentity();
+      if (!identity) return null;
+      const user = await ctx.db
+        .query("users")
+        .withIndex("by_token", (q) =>
+          q.eq("tokenIdentifier", identity.tokenIdentifier)
+        )
+        .unique();
+      if (!user || theme.authorId !== user._id) return null;
+    }
+    return { name: theme.name, slug: theme.slug };
   },
 });
 
@@ -216,21 +235,29 @@ export const remove = mutation({
     if (!theme) throw new Error("Theme not found");
     if (theme.authorId !== user._id) throw new Error("Not authorized");
 
-    // Clean up associated stars and comments
-    const stars = await ctx.db
-      .query("stars")
-      .withIndex("by_theme", (q) => q.eq("themeId", args.id))
-      .take(500);
-    for (const star of stars) {
-      await ctx.db.delete(star._id);
-    }
-    const comments = await ctx.db
-      .query("comments")
-      .withIndex("by_theme", (q) => q.eq("themeId", args.id))
-      .take(500);
-    for (const comment of comments) {
-      await ctx.db.delete(comment._id);
-    }
+    // Clean up all associated stars
+    let stars;
+    do {
+      stars = await ctx.db
+        .query("stars")
+        .withIndex("by_theme", (q) => q.eq("themeId", args.id))
+        .take(500);
+      for (const star of stars) {
+        await ctx.db.delete(star._id);
+      }
+    } while (stars.length === 500);
+
+    // Clean up all associated comments
+    let comments;
+    do {
+      comments = await ctx.db
+        .query("comments")
+        .withIndex("by_theme", (q) => q.eq("themeId", args.id))
+        .take(500);
+      for (const comment of comments) {
+        await ctx.db.delete(comment._id);
+      }
+    } while (comments.length === 500);
 
     await ctx.db.delete(args.id);
   },
@@ -258,7 +285,7 @@ export const fork = mutation({
 
     const slug = await uniqueSlug(ctx.db, original.name + " fork");
 
-    return await ctx.db.insert("themes", {
+    const id = await ctx.db.insert("themes", {
       name: original.name + " (fork)",
       slug,
       description: original.description,
@@ -269,5 +296,7 @@ export const fork = mutation({
       colors: original.colors,
       fonts: original.fonts,
     });
+
+    return { id, slug };
   },
 });

@@ -103,6 +103,12 @@ export default function ThemeDetailPage() {
   const forkTheme = useMutation(api.themes.fork);
   const [forking, setForking] = useState(false);
 
+  // Forked-from theme info (for link)
+  const forkedFrom = useQuery(
+    api.themes.getBasicInfo,
+    theme?.forkedFromId ? { id: theme.forkedFromId } : "skip"
+  );
+
   // Loading state
   if (theme === undefined) {
     return (
@@ -152,14 +158,9 @@ export default function ThemeDetailPage() {
     if (!theme) return;
     setForking(true);
     try {
-      const forkedId = await forkTheme({ id: theme._id });
-      // Navigate to the forked theme — we need its slug.
-      // The fork mutation returns the new theme ID. We'll redirect after a brief moment.
-      if (forkedId) {
-        // Forked themes get slug: "{name}-fork"
-        const forkedSlug =
-          theme.slug + "-fork";
-        router.push(`/theme/${forkedSlug}`);
+      const result = await forkTheme({ id: theme._id });
+      if (result) {
+        router.push(`/theme/${result.slug}`);
       }
     } catch {
       // Fork may fail if not authenticated
@@ -218,9 +219,9 @@ export default function ThemeDetailPage() {
             <p className="text-gray-600 leading-relaxed">{theme.description}</p>
           )}
 
-          {theme.forkedFromId && (
+          {theme.forkedFromId && forkedFrom && (
             <p className="text-sm text-gray-400 italic">
-              Forked from another theme
+              Forked from <a href={`/theme/${forkedFrom.slug}`} className="text-blue-500 hover:underline">{forkedFrom.name}</a>
             </p>
           )}
 
