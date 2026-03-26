@@ -51,3 +51,11 @@ All three bugs fixed:
 2. Fixed fork redirect in `page.tsx` — renamed `forkedId` to `result` and used `result.slug` directly instead of constructing a wrong slug
 3. Updated "Forked from" text to show parent theme name as a clickable link using the `forkedFrom` query data
 TypeScript compiles cleanly with no errors.
+
+## Review notes
+Reviewed all three fixes on 2026-03-26. Code review passed:
+1. `getBasicInfo` query (themes.ts:64-82) — correctly implemented with privacy guard: returns null for missing/private themes unless viewer is the author. Returns only `{ name, slug }`.
+2. Fork redirect (page.tsx:161-164) — correctly uses `result.slug` from the mutation return value. Confirmed the `fork` mutation returns `{ id, slug }` at themes.ts:300.
+3. Forked-from link (page.tsx:222-226) — correctly renders parent theme name as a clickable link, guarded by `theme.forkedFromId && forkedFrom`.
+TypeScript compiles cleanly. No bugs, missing edge cases, or code quality issues found in the changes.
+Note: browser testing showed a pre-existing auth provider setup error (`Cannot destructure property 'isLoading' of 'useAuth(...)' as it is undefined`) which is unrelated to these fixes — it's a `@convex-dev/auth` configuration issue that predates this task.
