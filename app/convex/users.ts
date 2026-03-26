@@ -1,6 +1,20 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 
+export const get = query({
+  args: { id: v.id("users") },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.id);
+    if (!user) return null;
+    return {
+      _id: user._id,
+      username: user.username,
+      displayName: user.displayName,
+      avatarUrl: user.avatarUrl,
+    };
+  },
+});
+
 export const getByUsername = query({
   args: { username: v.string() },
   handler: async (ctx, args) => {
