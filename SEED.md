@@ -15,3 +15,10 @@ Make a CLEAR seperation between the folder this cli tool is running in, and the 
 Test the script out and make sure it works properly.
 
 Save instructions to README.md on how to run the script, or stop the agents, etc.
+
+Prefer using the following in order:
+
+- Typescript/Node
+- Golang
+- Python
+- fall back to whatever scripting is available on the machine
