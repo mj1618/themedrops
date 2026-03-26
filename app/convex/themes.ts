@@ -252,6 +252,9 @@ export const fork = mutation({
 
     const original = await ctx.db.get(args.id);
     if (!original) throw new Error("Theme not found");
+    if (!original.isPublic && original.authorId !== user._id) {
+      throw new Error("Not authorized");
+    }
 
     const slug = await uniqueSlug(ctx.db, original.name + " fork");
 

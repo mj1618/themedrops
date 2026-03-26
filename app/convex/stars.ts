@@ -42,6 +42,9 @@ export const toggle = mutation({
 
     const theme = await ctx.db.get(args.themeId);
     if (!theme) throw new Error("Theme not found");
+    if (!theme.isPublic && theme.authorId !== user._id) {
+      throw new Error("Not authorized");
+    }
 
     const existing = await ctx.db
       .query("stars")
@@ -72,6 +75,18 @@ export const toggle = mutation({
 export const getStarredThemes = query({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    let currentUserId = null;
+    if (identity) {
+      const viewer = await ctx.db
+        .query("users")
+        .withIndex("by_token", (q) =>
+          q.eq("tokenIdentifier", identity.tokenIdentifier)
+        )
+        .unique();
+      if (viewer) currentUserId = viewer._id;
+    }
+
     const stars = await ctx.db
       .query("stars")
       .withIndex("by_user_and_theme", (q) => q.eq("userId", args.userId))
@@ -80,7 +95,9 @@ export const getStarredThemes = query({
     const themes = [];
     for (const star of stars) {
       const theme = await ctx.db.get(star.themeId);
-      if (theme) themes.push(theme);
+      if (theme && (theme.isPublic || theme.authorId === currentUserId)) {
+        themes.push(theme);
+      }
     }
     return themes;
   },

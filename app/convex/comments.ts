@@ -45,6 +45,12 @@ export const create = mutation({
       .unique();
     if (!user) throw new Error("User not found");
 
+    const theme = await ctx.db.get(args.themeId);
+    if (!theme) throw new Error("Theme not found");
+    if (!theme.isPublic && theme.authorId !== user._id) {
+      throw new Error("Not authorized");
+    }
+
     return await ctx.db.insert("comments", {
       userId: user._id,
       themeId: args.themeId,
