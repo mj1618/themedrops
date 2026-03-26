@@ -1,0 +1,19 @@
+{
+  "name": "swarm-cli",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "stop": "tsx src/index.ts stop",
+    "dev": "tsx watch src/index.ts"
+  },
+  "dependencies": {
+    "chalk": "^5.4.1",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3",
+    "yaml": "^2.7.1"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0"
+  }
+}
