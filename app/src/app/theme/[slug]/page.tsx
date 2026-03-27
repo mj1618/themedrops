@@ -5,6 +5,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { useState } from "react";
 import AuthControls from "../../components/AuthControls";
+import CreateThemeLink from "../../components/CreateThemeLink";
 const COLOR_LABELS: { key: string; label: string }[] = [
   { key: "background", label: "Background" },
   { key: "foreground", label: "Foreground" },
@@ -181,7 +182,10 @@ export default function ThemeDetailPage() {
           >
             ThemeDrops
           </a>
-          <AuthControls />
+          <div className="flex items-center gap-3">
+            <CreateThemeLink />
+            <AuthControls />
+          </div>
         </div>
       </header>
 

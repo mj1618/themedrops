@@ -6,6 +6,7 @@ import { Doc } from "../../convex/_generated/dataModel";
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import AuthControls from "./components/AuthControls";
+import CreateThemeLink from "./components/CreateThemeLink";
 
 const COLOR_KEYS = [
   "background",
@@ -213,7 +214,8 @@ export default function Home() {
         />
 
         <div className="relative max-w-6xl mx-auto px-6 py-16 sm:py-20">
-          <div className="absolute top-6 right-6">
+          <div className="absolute top-6 right-6 flex items-center gap-3">
+            <CreateThemeLink />
             <AuthControls />
           </div>
           <div className="max-w-2xl">

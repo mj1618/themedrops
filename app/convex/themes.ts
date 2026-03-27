@@ -150,7 +150,7 @@ export const create = mutation({
 
     const slug = await uniqueSlug(ctx.db, args.name);
 
-    return await ctx.db.insert("themes", {
+    const id = await ctx.db.insert("themes", {
       name: args.name,
       slug,
       description: args.description,
@@ -160,6 +160,8 @@ export const create = mutation({
       colors: args.colors,
       fonts: args.fonts,
     });
+
+    return { id, slug };
   },
 });
 
