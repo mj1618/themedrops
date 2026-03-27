@@ -99,15 +99,21 @@ function generateSlug(name: string): string {
     .replace(/[^a-z0-9-]/g, "");
 }
 
-async function uniqueSlug(db: DatabaseReader, name: string): Promise<string> {
+async function uniqueSlug(
+  db: DatabaseReader,
+  name: string,
+  excludeId?: import("./_generated/dataModel").Id<"themes">
+): Promise<string> {
   const base = generateSlug(name);
   let slug = base;
   let suffix = 2;
+  let existing;
   while (
-    await db
+    (existing = await db
       .query("themes")
       .withIndex("by_slug", (q) => q.eq("slug", slug))
-      .unique()
+      .unique()) &&
+    existing._id !== excludeId
   ) {
     slug = `${base}-${suffix}`;
     suffix++;
@@ -208,7 +214,7 @@ export const update = mutation({
     const updates: Record<string, unknown> = {};
     if (args.name !== undefined) {
       updates.name = args.name;
-      updates.slug = await uniqueSlug(ctx.db, args.name);
+      updates.slug = await uniqueSlug(ctx.db, args.name, args.id);
     }
     if (args.description !== undefined) updates.description = args.description;
     if (args.isPublic !== undefined) updates.isPublic = args.isPublic;
@@ -216,6 +222,7 @@ export const update = mutation({
     if (args.fonts !== undefined) updates.fonts = args.fonts;
 
     await ctx.db.patch(args.id, updates);
+    return { slug: (updates.slug as string) ?? theme.slug };
   },
 });
 

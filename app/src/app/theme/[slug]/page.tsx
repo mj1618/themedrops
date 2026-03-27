@@ -110,14 +110,6 @@ function LivePreview({
   );
 }
 
-function slugify(name: string): string {
-  return name
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
-
 export default function ThemeDetailPage() {
   const params = useParams<{ slug: string }>();
   const router = useRouter();
@@ -236,13 +228,12 @@ export default function ThemeDetailPage() {
         updates.fonts = fontPayload;
       }
 
-      await updateTheme(updates as Parameters<typeof updateTheme>[0]);
+      const result = await updateTheme(updates as Parameters<typeof updateTheme>[0]);
       setEditing(false);
 
-      // If name changed, the slug changed server-side — redirect
-      if (editName !== theme.name) {
-        const newSlug = slugify(editName);
-        router.push(`/theme/${newSlug}`);
+      // If name changed, the slug changed server-side — redirect using the returned slug
+      if (editName !== theme.name && result?.slug) {
+        router.push(`/theme/${result.slug}`);
       }
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : "Failed to save");
