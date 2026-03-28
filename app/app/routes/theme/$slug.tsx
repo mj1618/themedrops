@@ -8,6 +8,7 @@ import { useToast } from "../../components/Toast";
 import { ThemeExport } from "../../components/ThemeExport";
 import { ContrastChecker } from "../../components/ContrastChecker";
 import { SimilarThemes } from "../../components/SimilarThemes";
+import { AddToCollectionModal } from "../../components/AddToCollectionModal";
 import { convertColors } from "../../lib/colorConvert";
 
 export const Route = createFileRoute("/theme/$slug")({
@@ -43,6 +44,7 @@ function ThemeDetailPage() {
   const [showFork, setShowFork] = useState(false);
   const [apiFormat, setApiFormat] = useState("hex");
   const [showApi, setShowApi] = useState(false);
+  const [showCollection, setShowCollection] = useState(false);
 
   const [starLoading, setStarLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -277,6 +279,19 @@ function ThemeDetailPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
               </svg>
               Share
+            </button>
+
+            <button
+              onClick={() => {
+                if (!user) return setShowAuth(true);
+                setShowCollection(true);
+              }}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-td-secondary text-td-foreground border border-white/10 hover:border-white/20 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+              Collect
             </button>
 
             <button
@@ -526,6 +541,12 @@ function ThemeDetailPage() {
       </section>
 
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
+      {showCollection && (
+        <AddToCollectionModal
+          themeId={theme._id}
+          onClose={() => setShowCollection(false)}
+        />
+      )}
     </div>
   );
 }

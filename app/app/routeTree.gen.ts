@@ -14,6 +14,7 @@ import { Route as CreateRouteImport } from './routes/create'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UserUsernameRouteImport } from './routes/user/$username'
 import { Route as ThemeSlugRouteImport } from './routes/theme/$slug'
+import { Route as CollectionCollectionIdRouteImport } from './routes/collection/$collectionId'
 import { Route as ThemeSlugEditRouteImport } from './routes/theme/$slug.edit'
 
 const SettingsRoute = SettingsRouteImport.update({
@@ -41,6 +42,11 @@ const ThemeSlugRoute = ThemeSlugRouteImport.update({
   path: '/theme/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CollectionCollectionIdRoute = CollectionCollectionIdRouteImport.update({
+  id: '/collection/$collectionId',
+  path: '/collection/$collectionId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ThemeSlugEditRoute = ThemeSlugEditRouteImport.update({
   id: '/edit',
   path: '/edit',
@@ -51,6 +57,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/create': typeof CreateRoute
   '/settings': typeof SettingsRoute
+  '/collection/$collectionId': typeof CollectionCollectionIdRoute
   '/theme/$slug': typeof ThemeSlugRouteWithChildren
   '/user/$username': typeof UserUsernameRoute
   '/theme/$slug/edit': typeof ThemeSlugEditRoute
@@ -59,6 +66,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/create': typeof CreateRoute
   '/settings': typeof SettingsRoute
+  '/collection/$collectionId': typeof CollectionCollectionIdRoute
   '/theme/$slug': typeof ThemeSlugRouteWithChildren
   '/user/$username': typeof UserUsernameRoute
   '/theme/$slug/edit': typeof ThemeSlugEditRoute
@@ -68,6 +76,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/create': typeof CreateRoute
   '/settings': typeof SettingsRoute
+  '/collection/$collectionId': typeof CollectionCollectionIdRoute
   '/theme/$slug': typeof ThemeSlugRouteWithChildren
   '/user/$username': typeof UserUsernameRoute
   '/theme/$slug/edit': typeof ThemeSlugEditRoute
@@ -78,6 +87,7 @@ export interface FileRouteTypes {
     | '/'
     | '/create'
     | '/settings'
+    | '/collection/$collectionId'
     | '/theme/$slug'
     | '/user/$username'
     | '/theme/$slug/edit'
@@ -86,6 +96,7 @@ export interface FileRouteTypes {
     | '/'
     | '/create'
     | '/settings'
+    | '/collection/$collectionId'
     | '/theme/$slug'
     | '/user/$username'
     | '/theme/$slug/edit'
@@ -94,6 +105,7 @@ export interface FileRouteTypes {
     | '/'
     | '/create'
     | '/settings'
+    | '/collection/$collectionId'
     | '/theme/$slug'
     | '/user/$username'
     | '/theme/$slug/edit'
@@ -103,6 +115,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CreateRoute: typeof CreateRoute
   SettingsRoute: typeof SettingsRoute
+  CollectionCollectionIdRoute: typeof CollectionCollectionIdRoute
   ThemeSlugRoute: typeof ThemeSlugRouteWithChildren
   UserUsernameRoute: typeof UserUsernameRoute
 }
@@ -144,6 +157,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ThemeSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/collection/$collectionId': {
+      id: '/collection/$collectionId'
+      path: '/collection/$collectionId'
+      fullPath: '/collection/$collectionId'
+      preLoaderRoute: typeof CollectionCollectionIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/theme/$slug/edit': {
       id: '/theme/$slug/edit'
       path: '/edit'
@@ -170,6 +190,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CreateRoute: CreateRoute,
   SettingsRoute: SettingsRoute,
+  CollectionCollectionIdRoute: CollectionCollectionIdRoute,
   ThemeSlugRoute: ThemeSlugRouteWithChildren,
   UserUsernameRoute: UserUsernameRoute,
 }

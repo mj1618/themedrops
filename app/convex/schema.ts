@@ -44,7 +44,7 @@ export default defineSchema({
     .index("by_slug", ["slug"])
     .index("by_author", ["authorId"])
     .index("by_stars", ["starCount"])
-    .index("by_creation", ["_creationTime"])
+    .index("by_creation", ["isPublic"])
     .index("by_forks", ["forkCount"])
     .searchIndex("search_themes", {
       searchField: "name",
@@ -77,6 +77,21 @@ export default defineSchema({
     themeId: v.id("themes"),
     read: v.boolean(),
   })
-    .index("by_user", ["userId", "_creationTime"])
+    .index("by_user", ["userId"])
     .index("by_user_unread", ["userId", "read"]),
+
+  collections: defineTable({
+    name: v.string(),
+    description: v.optional(v.string()),
+    userId: v.id("users"),
+    isPublic: v.boolean(),
+  }).index("by_user", ["userId"]),
+
+  collectionItems: defineTable({
+    collectionId: v.id("collections"),
+    themeId: v.id("themes"),
+    order: v.number(),
+  })
+    .index("by_collection", ["collectionId"])
+    .index("by_theme", ["themeId"]),
 });
