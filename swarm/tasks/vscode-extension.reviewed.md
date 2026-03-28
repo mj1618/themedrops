@@ -49,3 +49,13 @@ All tasks completed. The extension is in `vscode-extension/` with:
 - **Icon**: Generated 128x128 PNG icon
 - **README**: Installation and usage docs
 - Compiles cleanly with TypeScript, no backend changes needed
+
+## Review Notes
+
+Reviewed by Claude. The extension is well-structured, compiles cleanly, and meets all acceptance criteria. Three issues were found and fixed:
+
+1. **Bug fix: Missing error handling in browse/search commands** — `browseThemes()` and `searchThemes()` had no try/catch around the API fetch. If the network request failed (server down, no internet), the error would propagate uncaught and VS Code would show a cryptic error dialog. Added proper error handling with user-friendly error messages.
+
+2. **Bug fix: `applyTheme` overwrote all color customizations** — The original code replaced the entire `workbench.colorCustomizations` object with only the theme colors. Any existing user customizations not covered by the theme mapping (e.g., `errorForeground`, `gitDecoration.*`) would be silently lost. Fixed by merging the theme colors into the existing customizations instead of replacing them.
+
+3. **Removed dead code** — `fetchThemeBySlug()` was defined but never called anywhere. Removed it to keep the codebase clean.

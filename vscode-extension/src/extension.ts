@@ -38,15 +38,6 @@ async function fetchThemes(): Promise<ThemeData[]> {
   return response.json() as Promise<ThemeData[]>;
 }
 
-async function fetchThemeBySlug(slug: string): Promise<ThemeData> {
-  const url = `${getApiUrl()}/api/themes/${encodeURIComponent(slug)}?format=hex`;
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch theme: ${response.statusText}`);
-  }
-  return response.json() as Promise<ThemeData>;
-}
-
 function mapThemeToVSCodeColors(
   colors: ThemeColors
 ): Record<string, string> {
@@ -163,9 +154,10 @@ async function applyTheme(
   }
 
   const newColors = mapThemeToVSCodeColors(theme.colors);
+  const mergedColors = { ...(currentColors || {}), ...newColors };
   await config.update(
     "workbench.colorCustomizations",
-    newColors,
+    mergedColors,
     vscode.ConfigurationTarget.Global
   );
 
@@ -175,13 +167,21 @@ async function applyTheme(
 }
 
 async function browseThemes(context: vscode.ExtensionContext): Promise<void> {
-  const themes = await vscode.window.withProgress(
-    {
-      location: vscode.ProgressLocation.Notification,
-      title: "ThemeDrops: Fetching themes...",
-    },
-    () => fetchThemes()
-  );
+  let themes: ThemeData[];
+  try {
+    themes = await vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: "ThemeDrops: Fetching themes...",
+      },
+      () => fetchThemes()
+    );
+  } catch (err) {
+    vscode.window.showErrorMessage(
+      `ThemeDrops: Failed to fetch themes. ${err instanceof Error ? err.message : String(err)}`
+    );
+    return;
+  }
 
   if (!themes.length) {
     vscode.window.showWarningMessage("ThemeDrops: No themes found.");
@@ -215,13 +215,21 @@ async function searchThemes(context: vscode.ExtensionContext): Promise<void> {
     return;
   }
 
-  const themes = await vscode.window.withProgress(
-    {
-      location: vscode.ProgressLocation.Notification,
-      title: "ThemeDrops: Searching themes...",
-    },
-    () => fetchThemes()
-  );
+  let themes: ThemeData[];
+  try {
+    themes = await vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: "ThemeDrops: Searching themes...",
+      },
+      () => fetchThemes()
+    );
+  } catch (err) {
+    vscode.window.showErrorMessage(
+      `ThemeDrops: Failed to fetch themes. ${err instanceof Error ? err.message : String(err)}`
+    );
+    return;
+  }
 
   const lowerQuery = query.toLowerCase();
   const filtered = themes.filter(
