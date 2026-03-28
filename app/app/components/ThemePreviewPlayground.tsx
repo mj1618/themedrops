@@ -57,6 +57,11 @@ function useGoogleFonts(fonts: ThemeFonts) {
     link.rel = "stylesheet";
     link.href = `https://fonts.googleapis.com/css2?family=${families}&display=swap`;
     document.head.appendChild(link);
+
+    return () => {
+      const el = document.getElementById(id);
+      if (el) el.remove();
+    };
   }, [fonts.heading, fonts.body, fonts.mono]);
 }
 
