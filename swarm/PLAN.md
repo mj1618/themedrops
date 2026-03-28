@@ -29,7 +29,7 @@ The theme details page should make it clear how to call the API for this theme a
 
 # Tech Stack
 
-NextJS on Vercel, Tailwind, Typescript, Convex.dev, Convex Username/Password Auth
+Tanstack Start on Vercel, Tailwind, Typescript, Convex.dev, Convex Username/Password Auth
 
 # Testing
 
