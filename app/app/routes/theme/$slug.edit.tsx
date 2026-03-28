@@ -40,6 +40,10 @@ function EditThemePage() {
           description: theme.description ?? "",
           colors: theme.colors,
           fonts: theme.fonts,
+          vscode: theme.vscode,
+          discord: theme.discord,
+          tailwind: theme.tailwind,
+          tags: theme.tags ?? [],
           isPublic: theme.isPublic,
         }}
         onSubmit={async (values) => {
@@ -49,6 +53,10 @@ function EditThemePage() {
             description: values.description,
             colors: values.colors,
             fonts: values.fonts,
+            vscode: values.vscode,
+            discord: values.discord,
+            tailwind: values.tailwind,
+            tags: values.tags,
             isPublic: values.isPublic,
           });
           toast("Theme updated successfully!", "success");

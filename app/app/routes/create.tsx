@@ -58,10 +58,14 @@ function CreateThemePage() {
             body: "Inter",
             mono: "JetBrains Mono",
           },
+          tags: [],
           isPublic: true,
         }}
         onSubmit={async (values) => {
-          await createTheme(values);
+          await createTheme({
+            ...values,
+            tags: values.tags.length > 0 ? values.tags : undefined,
+          });
           navigate({ to: "/" });
         }}
         submitLabel="Create Theme"

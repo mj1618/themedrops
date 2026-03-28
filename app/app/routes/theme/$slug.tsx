@@ -238,6 +238,22 @@ function ThemeDetailPage() {
             <p className="text-td-muted">{theme.description}</p>
           )}
 
+          {/* Tags */}
+          {theme.tags && theme.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {theme.tags.map((tag) => (
+                <Link
+                  key={tag}
+                  to="/tags/$tagName"
+                  params={{ tagName: tag }}
+                  className="px-2.5 py-1 rounded-full text-xs font-medium bg-td-primary/15 text-td-primary border border-td-primary/20 hover:bg-td-primary/25 transition-colors"
+                >
+                  {tag}
+                </Link>
+              ))}
+            </div>
+          )}
+
           {/* Actions */}
           <div className="flex flex-wrap gap-3">
             <button

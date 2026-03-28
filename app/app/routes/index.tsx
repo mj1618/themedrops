@@ -1,9 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, usePaginatedQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { ThemeCard } from "../components/ThemeCard";
 import { useState, useMemo } from "react";
-import { Link } from "@tanstack/react-router";
 import {
   GalleryFilters,
   EMPTY_FILTERS,
@@ -50,6 +49,8 @@ function HomePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchDisplayCount, setSearchDisplayCount] = useState(SEARCH_PAGE_SIZE);
   const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS);
+
+  const popularTags = useQuery(api.tags.listPopular);
 
   const {
     results: themes,
@@ -132,6 +133,34 @@ function HomePage() {
           </a>
         </div>
       </section>
+
+      {/* Popular Tags */}
+      {popularTags && popularTags.length > 0 && (
+        <section className="mb-8">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-medium text-td-muted uppercase tracking-wider">Popular Tags</h2>
+            <Link
+              to="/tags"
+              className="text-xs text-td-primary hover:underline"
+            >
+              View all
+            </Link>
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            {popularTags.map((tag) => (
+              <Link
+                key={tag._id}
+                to="/tags/$tagName"
+                params={{ tagName: tag.name }}
+                className="shrink-0 px-3 py-1.5 rounded-full text-xs font-medium bg-td-secondary text-td-foreground border border-white/10 hover:border-td-primary/30 hover:bg-td-primary/10 hover:text-td-primary transition-colors"
+              >
+                {tag.name}
+                <span className="ml-1.5 text-td-muted">{tag.count}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Search & Filters */}
       <section id="gallery" className="space-y-6">

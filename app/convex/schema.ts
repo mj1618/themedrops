@@ -35,10 +35,58 @@ export default defineSchema({
       body: v.string(),
       mono: v.string(),
     }),
+    // VS Code syntax highlighting token colors
+    vscode: v.optional(v.object({
+      keyword: v.string(),
+      string: v.string(),
+      comment: v.string(),
+      function: v.string(),
+      variable: v.string(),
+      type: v.string(),
+      number: v.string(),
+      operator: v.string(),
+      punctuation: v.string(),
+    })),
+    // Discord UI colors for BetterDiscord/Vencord themes
+    discord: v.optional(v.object({
+      backgroundPrimary: v.string(),
+      backgroundSecondary: v.string(),
+      backgroundTertiary: v.string(),
+      backgroundFloating: v.string(),
+      textNormal: v.string(),
+      textMuted: v.string(),
+      textLink: v.string(),
+      interactiveNormal: v.string(),
+      interactiveHover: v.string(),
+      interactiveActive: v.string(),
+      statusOnline: v.string(),
+      statusIdle: v.string(),
+      statusDnd: v.string(),
+      statusOffline: v.string(),
+      brand: v.string(),
+    })),
+    // Tailwind / shadcn-ui CSS variable tokens
+    tailwind: v.optional(v.object({
+      primaryForeground: v.string(),
+      secondaryForeground: v.string(),
+      accentForeground: v.string(),
+      mutedForeground: v.string(),
+      card: v.string(),
+      cardForeground: v.string(),
+      popover: v.string(),
+      popoverForeground: v.string(),
+      border: v.string(),
+      input: v.string(),
+      ring: v.string(),
+      destructive: v.string(),
+      destructiveForeground: v.string(),
+      radius: v.string(),
+    })),
     starCount: v.number(),
     forkCount: v.optional(v.number()),
     forkOf: v.optional(v.id("themes")),
     authorId: v.id("users"),
+    tags: v.optional(v.array(v.string())),
     isPublic: v.boolean(),
   })
     .index("by_slug", ["slug"])
@@ -54,6 +102,13 @@ export default defineSchema({
       searchField: "description",
       filterFields: ["isPublic"],
     }),
+
+  tags: defineTable({
+    name: v.string(),
+    count: v.number(),
+  })
+    .index("by_name", ["name"])
+    .index("by_count", ["count"]),
 
   stars: defineTable({
     userId: v.id("users"),

@@ -3,6 +3,19 @@ import { paginationOptsValidator } from "convex/server";
 import { query, mutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { auth } from "./auth";
+import { incrementTagCounts, decrementTagCounts } from "./tags";
+
+function validateAndNormalizeTags(tags: string[]): string[] {
+  const normalized = tags
+    .map((t) => t.toLowerCase().trim())
+    .filter((t) => t.length > 0 && t.length <= 24 && /^[a-z0-9-]+$/.test(t));
+  // Deduplicate
+  const unique = [...new Set(normalized)];
+  if (unique.length > 5) {
+    throw new Error("Maximum 5 tags per theme");
+  }
+  return unique;
+}
 
 function slugify(name: string): string {
   return name
@@ -184,6 +197,53 @@ export const search = query({
   },
 });
 
+const vscodeValidator = v.optional(v.object({
+  keyword: v.string(),
+  string: v.string(),
+  comment: v.string(),
+  function: v.string(),
+  variable: v.string(),
+  type: v.string(),
+  number: v.string(),
+  operator: v.string(),
+  punctuation: v.string(),
+}));
+
+const discordValidator = v.optional(v.object({
+  backgroundPrimary: v.string(),
+  backgroundSecondary: v.string(),
+  backgroundTertiary: v.string(),
+  backgroundFloating: v.string(),
+  textNormal: v.string(),
+  textMuted: v.string(),
+  textLink: v.string(),
+  interactiveNormal: v.string(),
+  interactiveHover: v.string(),
+  interactiveActive: v.string(),
+  statusOnline: v.string(),
+  statusIdle: v.string(),
+  statusDnd: v.string(),
+  statusOffline: v.string(),
+  brand: v.string(),
+}));
+
+const tailwindValidator = v.optional(v.object({
+  primaryForeground: v.string(),
+  secondaryForeground: v.string(),
+  accentForeground: v.string(),
+  mutedForeground: v.string(),
+  card: v.string(),
+  cardForeground: v.string(),
+  popover: v.string(),
+  popoverForeground: v.string(),
+  border: v.string(),
+  input: v.string(),
+  ring: v.string(),
+  destructive: v.string(),
+  destructiveForeground: v.string(),
+  radius: v.string(),
+}));
+
 export const create = mutation({
   args: {
     name: v.string(),
@@ -201,6 +261,10 @@ export const create = mutation({
       body: v.string(),
       mono: v.string(),
     }),
+    vscode: vscodeValidator,
+    discord: discordValidator,
+    tailwind: tailwindValidator,
+    tags: v.optional(v.array(v.string())),
     isPublic: v.boolean(),
   },
   handler: async (ctx, args) => {
@@ -217,17 +281,29 @@ export const create = mutation({
       slug = `${slug}-${Date.now().toString(36)}`;
     }
 
-    return await ctx.db.insert("themes", {
+    const tags = args.tags ? validateAndNormalizeTags(args.tags) : undefined;
+
+    const themeId = await ctx.db.insert("themes", {
       name: args.name,
       slug,
       description: args.description,
       colors: args.colors,
       fonts: args.fonts,
+      vscode: args.vscode,
+      discord: args.discord,
+      tailwind: args.tailwind,
+      tags,
       starCount: 0,
       forkCount: 0,
       authorId: userId,
       isPublic: args.isPublic,
     });
+
+    if (tags && tags.length > 0 && args.isPublic) {
+      await incrementTagCounts(ctx, tags);
+    }
+
+    return themeId;
   },
 });
 
@@ -253,6 +329,10 @@ export const update = mutation({
         mono: v.string(),
       })
     ),
+    vscode: vscodeValidator,
+    discord: discordValidator,
+    tailwind: tailwindValidator,
+    tags: v.optional(v.array(v.string())),
     isPublic: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
@@ -279,7 +359,25 @@ export const update = mutation({
     if (args.description !== undefined) updates.description = args.description;
     if (args.colors !== undefined) updates.colors = args.colors;
     if (args.fonts !== undefined) updates.fonts = args.fonts;
+    if (args.vscode !== undefined) updates.vscode = args.vscode;
+    if (args.discord !== undefined) updates.discord = args.discord;
+    if (args.tailwind !== undefined) updates.tailwind = args.tailwind;
     if (args.isPublic !== undefined) updates.isPublic = args.isPublic;
+
+    if (args.tags !== undefined) {
+      const newTags = validateAndNormalizeTags(args.tags);
+      const oldTags = theme.tags ?? [];
+      const isPublic = args.isPublic ?? theme.isPublic;
+
+      if (isPublic) {
+        const added = newTags.filter((t) => !oldTags.includes(t));
+        const removed = oldTags.filter((t) => !newTags.includes(t));
+        if (added.length > 0) await incrementTagCounts(ctx, added);
+        if (removed.length > 0) await decrementTagCounts(ctx, removed);
+      }
+
+      updates.tags = newTags;
+    }
 
     await ctx.db.patch(args.id, updates);
     return (updates.slug as string) ?? theme.slug;
@@ -312,6 +410,11 @@ export const remove = mutation({
       .collect();
     for (const comment of comments) {
       await ctx.db.delete(comment._id);
+    }
+
+    // Decrement tag counts
+    if (theme.tags && theme.tags.length > 0 && theme.isPublic) {
+      await decrementTagCounts(ctx, theme.tags);
     }
 
     await ctx.db.delete(args.id);
