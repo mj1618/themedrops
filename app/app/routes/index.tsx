@@ -2,8 +2,15 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, usePaginatedQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { ThemeCard } from "../components/ThemeCard";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link } from "@tanstack/react-router";
+import {
+  GalleryFilters,
+  EMPTY_FILTERS,
+  hasActiveFilters,
+  type FilterState,
+} from "../components/GalleryFilters";
+import { relativeLuminance, hexToColorFamily } from "../lib/colorConvert";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
@@ -13,10 +20,36 @@ const PAGE_SIZE = 24;
 const SEARCH_PAGE_SIZE = 24;
 const ACTIVITY_PAGE_SIZE = 6;
 
+type SortOption = "stars" | "newest" | "forks";
+
+function applyFilters<T extends { colors: { background: string; primary: string }; fonts: { heading: string }; description?: string }>(
+  themes: T[],
+  filters: FilterState
+): T[] {
+  return themes.filter((t) => {
+    if (filters.tone !== "all") {
+      const lum = relativeLuminance(t.colors.background);
+      if (filters.tone === "light" && lum <= 0.5) return false;
+      if (filters.tone === "dark" && lum > 0.5) return false;
+    }
+    if (filters.colorFamily !== null) {
+      if (hexToColorFamily(t.colors.primary) !== filters.colorFamily) return false;
+    }
+    if (filters.headingFont !== null) {
+      if (t.fonts.heading !== filters.headingFont) return false;
+    }
+    if (filters.hasDescription) {
+      if (!t.description?.trim()) return false;
+    }
+    return true;
+  });
+}
+
 function HomePage() {
-  const [sortBy, setSortBy] = useState<"stars" | "newest">("stars");
+  const [sortBy, setSortBy] = useState<SortOption>("stars");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchDisplayCount, setSearchDisplayCount] = useState(SEARCH_PAGE_SIZE);
+  const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS);
 
   const {
     results: themes,
@@ -46,12 +79,25 @@ function HomePage() {
   const isSearching = !!searchQuery.trim();
   const displayedSearchResults = searchResults?.slice(0, searchDisplayCount);
   const hasMoreSearchResults = searchResults ? searchResults.length > searchDisplayCount : false;
-  const displayedThemes = isSearching ? displayedSearchResults : themes;
+  const baseThemes = isSearching ? displayedSearchResults : themes;
 
-  const handleSortChange = (tab: "stars" | "newest") => {
+  const filtersActive = hasActiveFilters(filters);
+  const displayedThemes = useMemo(
+    () => (baseThemes && filtersActive ? applyFilters(baseThemes, filters) : baseThemes),
+    [baseThemes, filters, filtersActive]
+  );
+
+  const availableFonts = useMemo(() => {
+    if (!baseThemes) return [];
+    const fonts = new Set(baseThemes.map((t) => t.fonts.heading));
+    return Array.from(fonts).sort();
+  }, [baseThemes]);
+
+  const handleSortChange = (tab: SortOption) => {
     setSortBy(tab);
     setSearchQuery("");
     setSearchDisplayCount(SEARCH_PAGE_SIZE);
+    setFilters(EMPTY_FILTERS);
   };
 
   const handleSearchChange = (value: string) => {
@@ -91,7 +137,7 @@ function HomePage() {
       <section id="gallery" className="space-y-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex gap-1 p-1 rounded-xl bg-td-secondary">
-            {(["stars", "newest"] as const).map((tab) => (
+            {(["stars", "newest", "forks"] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => handleSortChange(tab)}
@@ -101,7 +147,7 @@ function HomePage() {
                     : "text-td-muted hover:text-td-foreground"
                 }`}
               >
-                {tab === "stars" ? "Popular" : "Newest"}
+                {tab === "stars" ? "Popular" : tab === "newest" ? "Newest" : "Most Forked"}
               </button>
             ))}
           </div>
@@ -130,6 +176,15 @@ function HomePage() {
           </div>
         </div>
 
+        {/* Filters */}
+        <GalleryFilters
+          filters={filters}
+          onChange={setFilters}
+          availableFonts={availableFonts}
+          totalCount={baseThemes?.length ?? 0}
+          filteredCount={displayedThemes?.length ?? 0}
+        />
+
         {/* Theme Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {displayedThemes?.map((theme) => (
@@ -139,7 +194,11 @@ function HomePage() {
 
         {displayedThemes && displayedThemes.length === 0 && (
           <div className="text-center py-16 text-td-muted">
-            {searchQuery ? "No themes match your search." : "No themes yet. Be the first to create one!"}
+            {searchQuery
+              ? "No themes match your search."
+              : filtersActive
+                ? "No themes match your filters."
+                : "No themes yet. Be the first to create one!"}
           </div>
         )}
 

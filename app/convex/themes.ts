@@ -13,7 +13,7 @@ function slugify(name: string): string {
 
 export const list = query({
   args: {
-    sortBy: v.optional(v.union(v.literal("stars"), v.literal("newest"))),
+    sortBy: v.optional(v.union(v.literal("stars"), v.literal("newest"), v.literal("forks"))),
     paginationOpts: paginationOptsValidator,
   },
   handler: async (ctx, args) => {
@@ -24,6 +24,11 @@ export const list = query({
       themesQuery = ctx.db
         .query("themes")
         .withIndex("by_creation")
+        .order("desc");
+    } else if (sortBy === "forks") {
+      themesQuery = ctx.db
+        .query("themes")
+        .withIndex("by_forks")
         .order("desc");
     } else {
       themesQuery = ctx.db
@@ -198,6 +203,7 @@ export const create = mutation({
       colors: args.colors,
       fonts: args.fonts,
       starCount: 0,
+      forkCount: 0,
       authorId: userId,
       isPublic: args.isPublic,
     });
@@ -319,9 +325,15 @@ export const fork = mutation({
       colors: { ...original.colors },
       fonts: { ...original.fonts },
       starCount: 0,
+      forkCount: 0,
       forkOf: original._id,
       authorId: userId,
       isPublic: true,
+    });
+
+    // Increment fork count on original theme
+    await ctx.db.patch(original._id, {
+      forkCount: (original.forkCount ?? 0) + 1,
     });
 
     await ctx.runMutation(internal.notifications.createNotification, {

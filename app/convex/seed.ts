@@ -174,6 +174,7 @@ export const seedData = mutation({
       await ctx.db.insert("themes", {
         ...theme,
         starCount: Math.floor(Math.random() * 50) + 5,
+        forkCount: 0,
         authorId: systemUser._id,
         isPublic: true,
       });

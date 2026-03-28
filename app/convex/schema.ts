@@ -36,6 +36,7 @@ export default defineSchema({
       mono: v.string(),
     }),
     starCount: v.number(),
+    forkCount: v.optional(v.number()),
     forkOf: v.optional(v.id("themes")),
     authorId: v.id("users"),
     isPublic: v.boolean(),
@@ -44,6 +45,7 @@ export default defineSchema({
     .index("by_author", ["authorId"])
     .index("by_stars", ["starCount"])
     .index("by_creation", ["_creationTime"])
+    .index("by_forks", ["forkCount"])
     .searchIndex("search_themes", {
       searchField: "name",
       filterFields: ["isPublic"],
