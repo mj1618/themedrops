@@ -4,6 +4,7 @@ import { api } from "../../convex/_generated/api";
 import { useState } from "react";
 import { AuthModal } from "./AuthModal";
 import { ThemeSwitcher } from "./ThemeSwitcher";
+import { NotificationBell } from "./NotificationBell";
 
 export function Header() {
   const user = useQuery(api.users.currentUser);
@@ -39,6 +40,7 @@ export function Header() {
             <ThemeSwitcher />
             {user ? (
               <div className="flex items-center gap-3">
+                <NotificationBell />
                 <Link
                   to="/settings"
                   className="text-sm text-td-muted hover:text-td-foreground transition-colors"

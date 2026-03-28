@@ -7,6 +7,7 @@ import {
 import type { ReactNode } from "react";
 import { ConvexAuthProvider } from "../lib/ConvexAuthProvider";
 import { ThemeProvider } from "../lib/ThemeProvider";
+import { ToastProvider } from "../components/Toast";
 import { Header } from "../components/Header";
 import appCss from "../styles/app.css?url";
 
@@ -38,10 +39,12 @@ function RootComponent() {
     <RootDocument>
       <ConvexAuthProvider>
         <ThemeProvider>
-          <Header />
-          <main className="min-h-[calc(100vh-4rem)]">
-            <Outlet />
-          </main>
+          <ToastProvider>
+            <Header />
+            <main className="min-h-[calc(100vh-4rem)]">
+              <Outlet />
+            </main>
+          </ToastProvider>
         </ThemeProvider>
       </ConvexAuthProvider>
     </RootDocument>

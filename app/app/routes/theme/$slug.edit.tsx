@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { ThemeForm } from "../../components/ThemeForm";
+import { useToast } from "../../components/Toast";
 
 export const Route = createFileRoute("/theme/$slug/edit")({
   component: EditThemePage,
@@ -10,6 +11,7 @@ export const Route = createFileRoute("/theme/$slug/edit")({
 function EditThemePage() {
   const { slug } = Route.useParams();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const theme = useQuery(api.themes.getBySlug, { slug });
   const updateTheme = useMutation(api.themes.update);
 
@@ -41,7 +43,7 @@ function EditThemePage() {
           isPublic: theme.isPublic,
         }}
         onSubmit={async (values) => {
-          await updateTheme({
+          const newSlug = await updateTheme({
             id: theme._id,
             name: values.name,
             description: values.description,
@@ -49,8 +51,8 @@ function EditThemePage() {
             fonts: values.fonts,
             isPublic: values.isPublic,
           });
-          // Navigate home since slug may have changed with name update
-          navigate({ to: "/" });
+          toast("Theme updated successfully!", "success");
+          navigate({ to: "/theme/$slug", params: { slug: newSlug ?? slug } });
         }}
         submitLabel="Save Changes"
       />

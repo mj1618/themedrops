@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { query, mutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { auth } from "./auth";
 
 function slugify(name: string): string {
@@ -254,6 +255,7 @@ export const update = mutation({
     if (args.isPublic !== undefined) updates.isPublic = args.isPublic;
 
     await ctx.db.patch(args.id, updates);
+    return (updates.slug as string) ?? theme.slug;
   },
 });
 
@@ -310,7 +312,7 @@ export const fork = mutation({
       slug = `${slug}-${Date.now().toString(36)}`;
     }
 
-    return await ctx.db.insert("themes", {
+    const forkedId = await ctx.db.insert("themes", {
       name: args.name,
       slug,
       description: original.description,
@@ -321,6 +323,15 @@ export const fork = mutation({
       authorId: userId,
       isPublic: true,
     });
+
+    await ctx.runMutation(internal.notifications.createNotification, {
+      userId: original.authorId,
+      type: "fork",
+      actorId: userId,
+      themeId: args.themeId,
+    });
+
+    return forkedId;
   },
 });
 
@@ -350,6 +361,12 @@ export const toggleStar = mutation({
       await ctx.db.insert("stars", { userId, themeId: args.themeId });
       await ctx.db.patch(args.themeId, {
         starCount: theme.starCount + 1,
+      });
+      await ctx.runMutation(internal.notifications.createNotification, {
+        userId: theme.authorId,
+        type: "star",
+        actorId: userId,
+        themeId: args.themeId,
       });
       return true;
     }

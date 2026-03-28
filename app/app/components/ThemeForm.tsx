@@ -83,14 +83,14 @@ export function ThemeForm({
       )}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Left: Form */}
-        <div className="space-y-6">
+        <fieldset disabled={loading} className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-td-foreground mb-1">Name</label>
             <input
               value={values.name}
               onChange={(e) => setValues((v) => ({ ...v, name: e.target.value }))}
               required
-              className="w-full px-3 py-2 rounded-lg bg-td-secondary border border-white/10 text-td-foreground focus:outline-none focus:ring-2 focus:ring-td-primary/50"
+              className="w-full px-3 py-2 rounded-lg bg-td-secondary border border-white/10 text-td-foreground focus:outline-none focus:ring-2 focus:ring-td-primary/50 disabled:opacity-50"
               placeholder="My Awesome Theme"
             />
           </div>
@@ -101,7 +101,7 @@ export function ThemeForm({
               value={values.description}
               onChange={(e) => setValues((v) => ({ ...v, description: e.target.value }))}
               rows={3}
-              className="w-full px-3 py-2 rounded-lg bg-td-secondary border border-white/10 text-td-foreground focus:outline-none focus:ring-2 focus:ring-td-primary/50 resize-none"
+              className="w-full px-3 py-2 rounded-lg bg-td-secondary border border-white/10 text-td-foreground focus:outline-none focus:ring-2 focus:ring-td-primary/50 resize-none disabled:opacity-50"
               placeholder="Describe your theme..."
             />
           </div>
@@ -117,13 +117,13 @@ export function ThemeForm({
                       type="color"
                       value={values.colors[key]}
                       onChange={(e) => setColor(key, e.target.value)}
-                      className="w-8 h-8 rounded-lg cursor-pointer border-0 bg-transparent"
+                      className="w-8 h-8 rounded-lg cursor-pointer border-0 bg-transparent disabled:opacity-50"
                     />
                     <input
                       type="text"
                       value={values.colors[key]}
                       onChange={(e) => setColor(key, e.target.value)}
-                      className="flex-1 px-2 py-1 text-xs font-mono rounded bg-td-background border border-white/10 text-td-foreground focus:outline-none"
+                      className="flex-1 px-2 py-1 text-xs font-mono rounded bg-td-background border border-white/10 text-td-foreground focus:outline-none disabled:opacity-50"
                     />
                   </div>
                 </div>
@@ -140,7 +140,7 @@ export function ThemeForm({
                   <select
                     value={values.fonts[key]}
                     onChange={(e) => setFont(key, e.target.value)}
-                    className="w-full px-2 py-1.5 text-sm rounded bg-td-secondary border border-white/10 text-td-foreground focus:outline-none"
+                    className="w-full px-2 py-1.5 text-sm rounded bg-td-secondary border border-white/10 text-td-foreground focus:outline-none disabled:opacity-50"
                   >
                     {FONT_OPTIONS.map((f) => (
                       <option key={f} value={f}>{f}</option>
@@ -153,7 +153,7 @@ export function ThemeForm({
                 <select
                   value={values.fonts.mono}
                   onChange={(e) => setFont("mono", e.target.value)}
-                  className="w-full px-2 py-1.5 text-sm rounded bg-td-secondary border border-white/10 text-td-foreground focus:outline-none"
+                  className="w-full px-2 py-1.5 text-sm rounded bg-td-secondary border border-white/10 text-td-foreground focus:outline-none disabled:opacity-50"
                 >
                   {MONO_FONT_OPTIONS.map((f) => (
                     <option key={f} value={f}>{f}</option>
@@ -168,7 +168,7 @@ export function ThemeForm({
               type="checkbox"
               checked={values.isPublic}
               onChange={(e) => setValues((v) => ({ ...v, isPublic: e.target.checked }))}
-              className="w-4 h-4 rounded"
+              className="w-4 h-4 rounded disabled:opacity-50"
             />
             <span className="text-sm text-td-foreground">Public (visible in gallery)</span>
           </label>
@@ -176,11 +176,17 @@ export function ThemeForm({
           <button
             type="submit"
             disabled={loading || !values.name.trim()}
-            className="w-full py-2.5 rounded-xl bg-td-primary text-white font-medium hover:bg-td-primary/90 transition-colors disabled:opacity-50"
+            className="w-full py-2.5 rounded-xl bg-td-primary text-white font-medium hover:bg-td-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
+            {loading && (
+              <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+            )}
             {loading ? "Saving..." : submitLabel}
           </button>
-        </div>
+        </fieldset>
 
         {/* Right: Live Preview */}
         <div className="space-y-3">

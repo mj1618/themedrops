@@ -339,11 +339,38 @@ function runAgent(
     activeProcesses.push(proc);
 
     let output = "";
+    let resolved = false;
+
+    function resolveOnce(success: boolean, out: string) {
+      if (resolved) return;
+      resolved = true;
+      const idx = activeProcesses.indexOf(proc);
+      if (idx !== -1) activeProcesses.splice(idx, 1);
+      // Kill the process group in case hooks are blocking exit
+      try {
+        if (proc.pid) process.kill(-proc.pid, "SIGTERM");
+      } catch {}
+      promResolve({ success, output: out });
+    }
 
     proc.stdout?.on("data", (data: Buffer) => {
       const chunk = data.toString();
       output += chunk;
       appendFileSync(logFile, chunk);
+      // Resolve as soon as stream-json emits the final result event
+      for (const line of chunk.split("\n")) {
+        if (!line.trim()) continue;
+        try {
+          const msg = JSON.parse(line);
+          if (msg.type === "result") {
+            appendFileSync(
+              logFile,
+              `\n--- result received (success=${!msg.is_error}) at ${new Date().toISOString()} ---\n`,
+            );
+            resolveOnce(!msg.is_error, output);
+          }
+        } catch {}
+      }
     });
 
     proc.stderr?.on("data", (data: Buffer) => {
@@ -357,16 +384,12 @@ function runAgent(
         logFile,
         `\n--- exited with code ${code} at ${new Date().toISOString()} ---\n`,
       );
-      const idx = activeProcesses.indexOf(proc);
-      if (idx !== -1) activeProcesses.splice(idx, 1);
-      promResolve({ success: code === 0, output });
+      resolveOnce(code === 0, output);
     });
 
     proc.on("error", (err) => {
       appendFileSync(logFile, `\n--- error: ${err.message} ---\n`);
-      const idx = activeProcesses.indexOf(proc);
-      if (idx !== -1) activeProcesses.splice(idx, 1);
-      promResolve({ success: false, output: err.message });
+      resolveOnce(false, err.message);
     });
   });
 }

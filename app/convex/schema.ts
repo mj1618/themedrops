@@ -63,4 +63,14 @@ export default defineSchema({
   })
     .index("by_theme", ["themeId"])
     .index("by_user", ["userId"]),
+
+  notifications: defineTable({
+    userId: v.id("users"),
+    type: v.union(v.literal("star"), v.literal("comment"), v.literal("fork")),
+    actorId: v.id("users"),
+    themeId: v.id("themes"),
+    read: v.boolean(),
+  })
+    .index("by_user", ["userId", "_creationTime"])
+    .index("by_user_unread", ["userId", "read"]),
 });

@@ -14,6 +14,7 @@ import type {
   FunctionReference,
 } from "convex/server";
 import type * as comments from "../comments.js";
+import type * as notifications from "../notifications.js";
 import type * as seed from "../seed.js";
 import type * as themes from "../themes.js";
 import type * as users from "../users.js";
@@ -25,6 +26,7 @@ import type * as http from "../http.js";
  */
 declare const fullApi: ApiFromModules<{
   comments: typeof comments;
+  notifications: typeof notifications;
   seed: typeof seed;
   themes: typeof themes;
   users: typeof users;
