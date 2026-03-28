@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
+import { useQuery, usePaginatedQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { ThemeCard } from "../components/ThemeCard";
 import { useState } from "react";
@@ -9,18 +9,55 @@ export const Route = createFileRoute("/")({
   component: HomePage,
 });
 
+const PAGE_SIZE = 24;
+const SEARCH_PAGE_SIZE = 24;
+const ACTIVITY_PAGE_SIZE = 6;
+
 function HomePage() {
   const [sortBy, setSortBy] = useState<"stars" | "newest">("stars");
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchDisplayCount, setSearchDisplayCount] = useState(SEARCH_PAGE_SIZE);
 
-  const themes = useQuery(api.themes.list, { sortBy, limit: 24 });
+  const {
+    results: themes,
+    status: themesStatus,
+    loadMore: loadMoreThemes,
+  } = usePaginatedQuery(
+    api.themes.list,
+    { sortBy },
+    { initialNumItems: PAGE_SIZE }
+  );
+
   const searchResults = useQuery(
     api.themes.search,
-    searchQuery.trim() ? { query: searchQuery } : "skip"
+    searchQuery.trim() ? { query: searchQuery, limit: 50 } : "skip"
   );
-  const recentComments = useQuery(api.comments.listRecent, { limit: 6 });
 
-  const displayedThemes = searchQuery.trim() ? searchResults : themes;
+  const {
+    results: recentComments,
+    status: activityStatus,
+    loadMore: loadMoreActivity,
+  } = usePaginatedQuery(
+    api.comments.listRecent,
+    {},
+    { initialNumItems: ACTIVITY_PAGE_SIZE }
+  );
+
+  const isSearching = !!searchQuery.trim();
+  const displayedSearchResults = searchResults?.slice(0, searchDisplayCount);
+  const hasMoreSearchResults = searchResults ? searchResults.length > searchDisplayCount : false;
+  const displayedThemes = isSearching ? displayedSearchResults : themes;
+
+  const handleSortChange = (tab: "stars" | "newest") => {
+    setSortBy(tab);
+    setSearchQuery("");
+    setSearchDisplayCount(SEARCH_PAGE_SIZE);
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    setSearchDisplayCount(SEARCH_PAGE_SIZE);
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -57,10 +94,7 @@ function HomePage() {
             {(["stars", "newest"] as const).map((tab) => (
               <button
                 key={tab}
-                onClick={() => {
-                  setSortBy(tab);
-                  setSearchQuery("");
-                }}
+                onClick={() => handleSortChange(tab)}
                 className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${
                   sortBy === tab && !searchQuery
                     ? "bg-td-primary text-white"
@@ -89,7 +123,7 @@ function HomePage() {
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               placeholder="Search themes..."
               className="w-full pl-10 pr-4 py-2 rounded-xl bg-td-secondary border border-white/5 text-td-foreground placeholder:text-td-muted/50 focus:outline-none focus:ring-2 focus:ring-td-primary/30 text-sm"
             />
@@ -117,6 +151,47 @@ function HomePage() {
                 className="h-52 rounded-2xl bg-td-secondary animate-pulse"
               />
             ))}
+          </div>
+        )}
+
+        {/* Load More button */}
+        {!isSearching && themesStatus === "CanLoadMore" && (
+          <div className="flex justify-center pt-4">
+            <button
+              onClick={() => loadMoreThemes(PAGE_SIZE)}
+              className="px-6 py-2.5 rounded-xl bg-td-secondary text-td-foreground font-medium border border-white/10 hover:border-white/20 transition-colors"
+            >
+              Load more
+            </button>
+          </div>
+        )}
+
+        {!isSearching && themesStatus === "LoadingMore" && (
+          <div className="flex justify-center pt-4">
+            <button
+              disabled
+              className="px-6 py-2.5 rounded-xl bg-td-secondary text-td-muted font-medium border border-white/10"
+            >
+              <span className="inline-flex items-center gap-2">
+                <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Loading...
+              </span>
+            </button>
+          </div>
+        )}
+
+        {/* Search Load More (client-side pagination) */}
+        {isSearching && hasMoreSearchResults && (
+          <div className="flex justify-center pt-4">
+            <button
+              onClick={() => setSearchDisplayCount((c) => c + SEARCH_PAGE_SIZE)}
+              className="px-6 py-2.5 rounded-xl bg-td-secondary text-td-foreground font-medium border border-white/10 hover:border-white/20 transition-colors"
+            >
+              Load more
+            </button>
           </div>
         )}
       </section>
@@ -161,6 +236,22 @@ function HomePage() {
               </div>
             ))}
           </div>
+
+          {activityStatus === "CanLoadMore" && (
+            <div className="flex justify-center">
+              <button
+                onClick={() => loadMoreActivity(ACTIVITY_PAGE_SIZE)}
+                className="text-sm text-td-primary hover:underline"
+              >
+                View more activity
+              </button>
+            </div>
+          )}
+          {activityStatus === "LoadingMore" && (
+            <div className="flex justify-center">
+              <span className="text-sm text-td-muted">Loading...</span>
+            </div>
+          )}
         </section>
       )}
     </div>

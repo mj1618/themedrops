@@ -1,10 +1,14 @@
-import { useQuery } from "convex/react";
+import { usePaginatedQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useTheme } from "../lib/ThemeProvider";
 import { useState, useRef, useEffect } from "react";
 
 export function ThemeSwitcher() {
-  const themes = useQuery(api.themes.list, { sortBy: "stars", limit: 20 });
+  const { results: themes } = usePaginatedQuery(
+    api.themes.list,
+    { sortBy: "stars" },
+    { initialNumItems: 20 }
+  );
   const { siteTheme, applySiteTheme, clearSiteTheme } = useTheme();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);

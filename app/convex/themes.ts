@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { paginationOptsValidator } from "convex/server";
 import { query, mutation } from "./_generated/server";
 import { auth } from "./auth";
 
@@ -12,11 +13,9 @@ function slugify(name: string): string {
 export const list = query({
   args: {
     sortBy: v.optional(v.union(v.literal("stars"), v.literal("newest"))),
-    cursor: v.optional(v.string()),
-    limit: v.optional(v.number()),
+    paginationOpts: paginationOptsValidator,
   },
   handler: async (ctx, args) => {
-    const limit = args.limit ?? 24;
     const sortBy = args.sortBy ?? "stars";
 
     let themesQuery;
@@ -32,12 +31,12 @@ export const list = query({
         .order("desc");
     }
 
-    const themes = await themesQuery
+    const results = await themesQuery
       .filter((q) => q.eq(q.field("isPublic"), true))
-      .take(limit);
+      .paginate(args.paginationOpts);
 
-    const withAuthors = await Promise.all(
-      themes.map(async (theme) => {
+    const pageWithAuthors = await Promise.all(
+      results.page.map(async (theme) => {
         const author = await ctx.db.get(theme.authorId);
         return {
           ...theme,
@@ -51,7 +50,10 @@ export const list = query({
       })
     );
 
-    return withAuthors;
+    return {
+      ...results,
+      page: pageWithAuthors,
+    };
   },
 });
 
@@ -108,26 +110,33 @@ export const getBySlug = query({
 });
 
 export const getByAuthor = query({
-  args: { authorId: v.id("users") },
+  args: {
+    authorId: v.id("users"),
+    paginationOpts: paginationOptsValidator,
+  },
   handler: async (ctx, args) => {
     return await ctx.db
       .query("themes")
       .withIndex("by_author", (q) => q.eq("authorId", args.authorId))
       .filter((q) => q.eq(q.field("isPublic"), true))
-      .collect();
+      .paginate(args.paginationOpts);
   },
 });
 
 export const search = query({
-  args: { query: v.string() },
+  args: {
+    query: v.string(),
+    limit: v.optional(v.number()),
+  },
   handler: async (ctx, args) => {
     if (!args.query.trim()) return [];
+    const limit = args.limit ?? 50;
     const results = await ctx.db
       .query("themes")
       .withSearchIndex("search_themes", (q) =>
         q.search("name", args.query).eq("isPublic", true)
       )
-      .take(20);
+      .take(limit);
 
     const withAuthors = await Promise.all(
       results.map(async (theme) => {

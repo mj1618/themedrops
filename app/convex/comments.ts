@@ -1,15 +1,19 @@
 import { v } from "convex/values";
+import { paginationOptsValidator } from "convex/server";
 import { query, mutation } from "./_generated/server";
 import { auth } from "./auth";
 
 export const listByTheme = query({
-  args: { themeId: v.id("themes") },
+  args: {
+    themeId: v.id("themes"),
+    paginationOpts: paginationOptsValidator,
+  },
   handler: async (ctx, args) => {
-    const comments = await ctx.db
+    const results = await ctx.db
       .query("comments")
       .withIndex("by_theme", (q) => q.eq("themeId", args.themeId))
       .order("desc")
-      .collect();
+      .paginate(args.paginationOpts);
 
     const session = await auth.getSessionId(ctx);
     let currentUserId: string | null = null;
@@ -18,8 +22,8 @@ export const listByTheme = query({
       currentUserId = sessionDoc?.userId ?? null;
     }
 
-    return Promise.all(
-      comments.map(async (comment) => {
+    const pageWithAuthors = await Promise.all(
+      results.page.map(async (comment) => {
         const user = await ctx.db.get(comment.userId);
         return {
           ...comment,
@@ -34,17 +38,26 @@ export const listByTheme = query({
         };
       })
     );
+
+    return {
+      ...results,
+      page: pageWithAuthors,
+    };
   },
 });
 
 export const listRecent = query({
-  args: { limit: v.optional(v.number()) },
+  args: {
+    paginationOpts: paginationOptsValidator,
+  },
   handler: async (ctx, args) => {
-    const limit = args.limit ?? 10;
-    const comments = await ctx.db.query("comments").order("desc").take(limit);
+    const results = await ctx.db
+      .query("comments")
+      .order("desc")
+      .paginate(args.paginationOpts);
 
-    return Promise.all(
-      comments.map(async (comment) => {
+    const pageWithDetails = await Promise.all(
+      results.page.map(async (comment) => {
         const user = await ctx.db.get(comment.userId);
         const theme = await ctx.db.get(comment.themeId);
         return {
@@ -61,6 +74,11 @@ export const listRecent = query({
         };
       })
     );
+
+    return {
+      ...results,
+      page: pageWithDetails,
+    };
   },
 });
 
