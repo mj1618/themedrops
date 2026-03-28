@@ -1,9 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, usePaginatedQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, useRef, type FormEvent } from "react";
 import { useTheme } from "../../lib/ThemeProvider";
 import { AuthModal } from "../../components/AuthModal";
+import { useToast } from "../../components/Toast";
+import { ThemeExport } from "../../components/ThemeExport";
+import { convertColors } from "../../lib/colorConvert";
 
 export const Route = createFileRoute("/theme/$slug")({
   component: ThemeDetailPage,
@@ -12,6 +15,7 @@ export const Route = createFileRoute("/theme/$slug")({
 function ThemeDetailPage() {
   const { slug } = Route.useParams();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const theme = useQuery(api.themes.getBySlug, { slug });
   const {
     results: comments,
@@ -38,6 +42,20 @@ function ThemeDetailPage() {
   const [apiFormat, setApiFormat] = useState("hex");
   const [showApi, setShowApi] = useState(false);
 
+  const [starLoading, setStarLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [forkLoading, setForkLoading] = useState(false);
+  const [commentLoading, setCommentLoading] = useState(false);
+  const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
+
+  const forkInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (showFork) {
+      forkInputRef.current?.focus();
+    }
+  }, [showFork]);
+
   if (theme === undefined) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-16">
@@ -59,20 +77,47 @@ function ThemeDetailPage() {
 
   const handleStar = async () => {
     if (!user) return setShowAuth(true);
-    await toggleStar({ themeId: theme._id });
+    setStarLoading(true);
+    try {
+      await toggleStar({ themeId: theme._id });
+    } catch {
+      toast("Failed to update star", "error");
+    } finally {
+      setStarLoading(false);
+    }
   };
 
   const handleFork = async () => {
     if (!user) return setShowAuth(true);
     if (!forkName.trim()) return;
-    const id = await forkTheme({ themeId: theme._id, name: forkName });
-    if (id) navigate({ to: "/" });
+    setForkLoading(true);
+    try {
+      await forkTheme({ themeId: theme._id, name: forkName });
+      toast("Theme forked successfully!", "success");
+      const forkSlug = forkName
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "");
+      setForkName("");
+      setShowFork(false);
+      navigate({ to: "/theme/$slug", params: { slug: forkSlug } });
+    } catch {
+      toast("Failed to fork theme", "error");
+    } finally {
+      setForkLoading(false);
+    }
   };
 
   const handleDelete = async () => {
-    if (confirm("Are you sure you want to delete this theme?")) {
+    if (!confirm("Are you sure you want to delete this theme?")) return;
+    setDeleteLoading(true);
+    try {
       await deleteTheme({ id: theme._id });
+      toast("Theme deleted", "success");
       navigate({ to: "/" });
+    } catch {
+      toast("Failed to delete theme", "error");
+      setDeleteLoading(false);
     }
   };
 
@@ -80,8 +125,26 @@ function ThemeDetailPage() {
     e.preventDefault();
     if (!user) return setShowAuth(true);
     if (!commentBody.trim()) return;
-    await addComment({ themeId: theme._id, body: commentBody.trim() });
-    setCommentBody("");
+    setCommentLoading(true);
+    try {
+      await addComment({ themeId: theme._id, body: commentBody.trim() });
+      setCommentBody("");
+    } catch {
+      toast("Failed to post comment", "error");
+    } finally {
+      setCommentLoading(false);
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    setDeletingCommentId(commentId);
+    try {
+      await deleteComment({ id: commentId as any });
+    } catch {
+      toast("Failed to delete comment", "error");
+    } finally {
+      setDeletingCommentId(null);
+    }
   };
 
   const siteUrl = typeof window !== "undefined" ? window.location.origin : "https://themedrops.com";
@@ -91,17 +154,7 @@ function ThemeDetailPage() {
     {
       name: theme.name,
       slug: theme.slug,
-      colors:
-        apiFormat === "hex"
-          ? theme.colors
-          : Object.fromEntries(
-              Object.entries(theme.colors).map(([k, v]) => [
-                k,
-                apiFormat === "rgb"
-                  ? `rgb(${parseInt(v.slice(1, 3), 16)}, ${parseInt(v.slice(3, 5), 16)}, ${parseInt(v.slice(5, 7), 16)})`
-                  : `${apiFormat}(...)`,
-              ])
-            ),
+      colors: convertColors(theme.colors, apiFormat),
       fonts: theme.fonts,
     },
     null,
@@ -184,7 +237,8 @@ function ThemeDetailPage() {
           <div className="flex flex-wrap gap-3">
             <button
               onClick={handleStar}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+              disabled={starLoading}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-50 ${
                 theme.isStarred
                   ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
                   : "bg-td-secondary text-td-foreground border border-white/10 hover:border-white/20"
@@ -200,7 +254,7 @@ function ThemeDetailPage() {
               onClick={() => {
                 if (!user) return setShowAuth(true);
                 setShowFork(!showFork);
-                setForkName(theme.name + " Fork");
+                if (!showFork) setForkName(theme.name + " Fork");
               }}
               className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-td-secondary text-td-foreground border border-white/10 hover:border-white/20 transition-colors"
             >
@@ -213,6 +267,7 @@ function ThemeDetailPage() {
             <button
               onClick={() => {
                 navigator.clipboard.writeText(`${siteUrl}/theme/${theme.slug}`);
+                toast("Link copied to clipboard", "success");
               }}
               className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-td-secondary text-td-foreground border border-white/10 hover:border-white/20 transition-colors"
             >
@@ -240,9 +295,10 @@ function ThemeDetailPage() {
                 </Link>
                 <button
                   onClick={handleDelete}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-colors"
+                  disabled={deleteLoading}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-colors disabled:opacity-50"
                 >
-                  Delete
+                  {deleteLoading ? "Deleting..." : "Delete"}
                 </button>
               </>
             )}
@@ -252,15 +308,28 @@ function ThemeDetailPage() {
           {showFork && (
             <div className="flex gap-2">
               <input
+                ref={forkInputRef}
                 value={forkName}
                 onChange={(e) => setForkName(e.target.value)}
-                className="flex-1 px-3 py-2 rounded-lg bg-td-background border border-white/10 text-td-foreground text-sm focus:outline-none focus:ring-2 focus:ring-td-primary/30"
+                disabled={forkLoading}
+                className="flex-1 px-3 py-2 rounded-lg bg-td-background border border-white/10 text-td-foreground text-sm focus:outline-none focus:ring-2 focus:ring-td-primary/30 disabled:opacity-50"
               />
               <button
                 onClick={handleFork}
-                className="px-4 py-2 rounded-lg bg-td-primary text-white text-sm font-medium"
+                disabled={forkLoading || !forkName.trim()}
+                className="px-4 py-2 rounded-lg bg-td-primary text-white text-sm font-medium disabled:opacity-50"
               >
-                Fork
+                {forkLoading ? "Forking..." : "Fork"}
+              </button>
+              <button
+                onClick={() => {
+                  setShowFork(false);
+                  setForkName("");
+                }}
+                disabled={forkLoading}
+                className="px-4 py-2 rounded-lg bg-td-secondary text-td-muted text-sm font-medium border border-white/10 hover:text-td-foreground transition-colors"
+              >
+                Cancel
               </button>
             </div>
           )}
@@ -292,6 +361,14 @@ function ThemeDetailPage() {
         </div>
       </div>
 
+      {/* Export Theme */}
+      <ThemeExport
+        name={theme.name}
+        slug={theme.slug}
+        colors={theme.colors}
+        fonts={theme.fonts}
+      />
+
       {/* API Documentation */}
       <section className="space-y-3">
         <button
@@ -317,7 +394,10 @@ function ThemeDetailPage() {
                   {apiUrl}?format={apiFormat}
                 </code>
                 <button
-                  onClick={() => navigator.clipboard.writeText(`${apiUrl}?format=${apiFormat}`)}
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${apiUrl}?format=${apiFormat}`);
+                    toast("API URL copied to clipboard", "success");
+                  }}
                   className="px-3 py-2 rounded-lg bg-td-primary/10 text-td-primary text-sm hover:bg-td-primary/20 transition-colors shrink-0"
                 >
                   Copy
@@ -365,15 +445,15 @@ function ThemeDetailPage() {
             value={commentBody}
             onChange={(e) => setCommentBody(e.target.value)}
             placeholder={user ? "Add a comment..." : "Sign in to comment"}
-            className="flex-1 px-4 py-2 rounded-xl bg-td-secondary border border-white/5 text-td-foreground placeholder:text-td-muted/50 text-sm focus:outline-none focus:ring-2 focus:ring-td-primary/30"
-            disabled={!user}
+            className="flex-1 px-4 py-2 rounded-xl bg-td-secondary border border-white/5 text-td-foreground placeholder:text-td-muted/50 text-sm focus:outline-none focus:ring-2 focus:ring-td-primary/30 disabled:opacity-50"
+            disabled={!user || commentLoading}
           />
           <button
             type="submit"
-            disabled={!user || !commentBody.trim()}
+            disabled={!user || !commentBody.trim() || commentLoading}
             className="px-4 py-2 rounded-xl bg-td-primary text-white text-sm font-medium disabled:opacity-30 hover:bg-td-primary/90 transition-colors"
           >
-            Post
+            {commentLoading ? "Posting..." : "Post"}
           </button>
         </form>
 
@@ -397,8 +477,9 @@ function ThemeDetailPage() {
               </div>
               {comment.isOwner && (
                 <button
-                  onClick={() => deleteComment({ id: comment._id })}
-                  className="text-td-muted hover:text-red-400 transition-colors"
+                  onClick={() => handleDeleteComment(comment._id)}
+                  disabled={deletingCommentId === comment._id}
+                  className="text-td-muted hover:text-red-400 transition-colors disabled:opacity-50"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
