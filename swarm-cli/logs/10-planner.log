@@ -1,8 +1,0 @@
---- planner (iteration 10) started at 2026-03-26T05:58:27.175Z ---
-Written `swarm/tasks/fix-theme-detail-page-bugs.todo.md` — three bugs in the theme detail page that will break forked theme functionality:
-
-1. **Missing backend query** — `api.themes.getBasicInfo` is called but doesn't exist (runtime crash)
-2. **Wrong fork redirect** — frontend guesses the slug instead of using the one returned by the mutation
-3. **Dead "forked from" text** — shows generic text instead of linking to the parent theme
-
---- exited with code 0 at 2026-03-26T06:00:31.172Z ---

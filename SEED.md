@@ -1,4 +1,4 @@
-Look at @swarm.yaml
+Look at @swarm/swarm.yaml
 
 Your job is to look for a tool that is available to you, and to build a small CLI tool that will run and manage the agents in swarm.yaml
 swarm.yaml defines a pipeline with dependencies, each task in the pipeline is an agent run with a fresh context window.

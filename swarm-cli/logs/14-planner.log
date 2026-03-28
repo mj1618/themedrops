@@ -1,4 +1,0 @@
---- planner (iteration 14) started at 2026-03-27T03:18:41.126Z ---
-Error: When using --print, --output-format=stream-json requires --verbose
-
---- exited with code 1 at 2026-03-27T03:18:41.847Z ---

@@ -1,8 +1,0 @@
---- coder (iteration 10) started at 2026-03-26T06:00:31.173Z ---
-Done. All three bugs fixed and pushed:
-
-1. **Added `themes.getBasicInfo` query** — returns `{ name, slug }` for a theme ID, with privacy checks (null for private themes unless viewer is author)
-2. **Fixed fork redirect** — uses `result.slug` from the mutation return value instead of incorrectly constructing `theme.slug + "-fork"`
-3. **Fixed "Forked from" link** — now shows parent theme name as a clickable link using the `forkedFrom` query data
-
---- exited with code 0 at 2026-03-26T06:02:43.300Z ---
