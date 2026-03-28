@@ -5,6 +5,7 @@
   "scripts": {
     "start": "tsx src/index.ts",
     "stop": "tsx src/index.ts stop",
+    "status": "tsx src/index.ts status",
     "dev": "tsx watch src/index.ts"
   },
   "dependencies": {

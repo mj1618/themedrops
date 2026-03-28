@@ -1,6 +1,7 @@
 import chalk from "chalk";
 import { ChildProcess, spawn } from "child_process";
-import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, unlinkSync, writeFileSync } from "fs";
+import { execSync } from "child_process";
 import { dirname, resolve } from "path";
 import { parse as parseYaml } from "yaml";
 
@@ -60,6 +61,7 @@ const PROJECT_ROOT = resolve(
 const SWARM_FILE = resolve(PROJECT_ROOT, "swarm.yaml");
 const STATE_FILE = resolve(PROJECT_ROOT, "swarm-cli/.state.json");
 const STOP_FILE = resolve(PROJECT_ROOT, "swarm-cli/.stop");
+const LOGS_DIR = resolve(PROJECT_ROOT, "swarm-cli/logs");
 
 let running = true;
 let paused = false;
@@ -76,7 +78,13 @@ function loadConfig(): SwarmConfig {
 
 function loadState(): StateFile | null {
   if (existsSync(STATE_FILE)) {
-    return JSON.parse(readFileSync(STATE_FILE, "utf-8"));
+    const content = readFileSync(STATE_FILE, "utf-8").trim();
+    if (!content) return null;
+    try {
+      return JSON.parse(content);
+    } catch {
+      return null;
+    }
   }
   return null;
 }
@@ -100,6 +108,78 @@ function checkStopRequested(): boolean {
     return true;
   }
   return false;
+}
+
+function showStatus() {
+  const TASKS_DIR = resolve(PROJECT_ROOT, "swarm/tasks");
+  const state = loadState();
+
+  console.log("");
+
+  // Pipeline state
+  if (state) {
+    console.log(chalk.bold.cyan(`  Pipeline: ${state.pipeline}`));
+    console.log(chalk.gray(`  Completed iterations: ${state.completedIterations}`));
+    console.log(chalk.gray(`  Current iteration:    ${state.currentIteration}`));
+    if (Object.keys(state.taskResults).length > 0) {
+      console.log("");
+      console.log(chalk.bold("  Last iteration results:"));
+      for (const [name, status] of Object.entries(state.taskResults)) {
+        const icon = status === "done" ? chalk.green("✓") : status === "failed" ? chalk.red("✗") : chalk.gray("○");
+        console.log(`  ${icon} ${name}: ${status}`);
+      }
+    }
+  } else {
+    console.log(chalk.gray("  No pipeline state found (not started or fully completed)."));
+  }
+
+  // Running agents
+  console.log("");
+  try {
+    const pids = execSync("pgrep -f 'claude.*-p.*--dangerously-skip-permissions'", { encoding: "utf-8" }).trim();
+    const count = pids ? pids.split("\n").length : 0;
+    if (count > 0) {
+      console.log(chalk.blue.bold(`  Running agents: ${count}`));
+      for (const pid of pids.split("\n")) {
+        console.log(chalk.blue(`    PID ${pid}`));
+      }
+    } else {
+      console.log(chalk.gray("  Running agents: none"));
+    }
+  } catch {
+    console.log(chalk.gray("  Running agents: none"));
+  }
+
+  // Task files
+  console.log("");
+  if (existsSync(TASKS_DIR)) {
+    const files = readdirSync(TASKS_DIR).filter((f: string) => f.endsWith(".md")).sort();
+    if (files.length === 0) {
+      console.log(chalk.gray("  No task files yet."));
+    } else {
+      console.log(chalk.bold("  Task files:"));
+      for (const f of files) {
+        let icon: string;
+        if (f.includes(".todo.")) icon = chalk.gray("○");
+        else if (f.includes(".processing.")) icon = chalk.blue("●");
+        else if (f.includes(".done.")) icon = chalk.green("✓");
+        else if (f.includes(".reviewing.")) icon = chalk.magenta("◉");
+        else if (f.includes(".reviewed.")) icon = chalk.green("✓✓");
+        else icon = chalk.gray("?");
+        console.log(`  ${icon} ${f}`);
+      }
+    }
+  } else {
+    console.log(chalk.gray("  No swarm/tasks/ directory."));
+  }
+
+  // Stop signal pending?
+  if (existsSync(STOP_FILE)) {
+    console.log("");
+    console.log(chalk.yellow.bold("  ⚠ Stop signal is pending — pipeline will halt at next check."));
+  }
+
+  console.log("");
 }
 
 function elapsed(ms: number): string {
@@ -192,13 +272,21 @@ function renderStatus(
 function runAgent(
   taskName: string,
   prompt: string,
+  iteration: number,
 ): Promise<{ success: boolean; output: string }> {
-  return new Promise((resolve) => {
+  mkdirSync(LOGS_DIR, { recursive: true });
+  const logFile = resolve(LOGS_DIR, `${iteration}-${taskName}.log`);
+  writeFileSync(logFile, `--- ${taskName} (iteration ${iteration}) started at ${new Date().toISOString()} ---\n`);
+
+  return new Promise((promResolve) => {
     const args = [
       "-p",
+      "--verbose",
       "--model",
       "opus",
       "--dangerously-skip-permissions",
+      "--output-format",
+      "stream-json",
       prompt,
     ];
 
@@ -214,23 +302,29 @@ function runAgent(
     let output = "";
 
     proc.stdout?.on("data", (data: Buffer) => {
-      output += data.toString();
+      const chunk = data.toString();
+      output += chunk;
+      appendFileSync(logFile, chunk);
     });
 
     proc.stderr?.on("data", (data: Buffer) => {
-      output += data.toString();
+      const chunk = data.toString();
+      output += chunk;
+      appendFileSync(logFile, chunk);
     });
 
     proc.on("close", (code) => {
+      appendFileSync(logFile, `\n--- exited with code ${code} at ${new Date().toISOString()} ---\n`);
       const idx = activeProcesses.indexOf(proc);
       if (idx !== -1) activeProcesses.splice(idx, 1);
-      resolve({ success: code === 0, output });
+      promResolve({ success: code === 0, output });
     });
 
     proc.on("error", (err) => {
+      appendFileSync(logFile, `\n--- error: ${err.message} ---\n`);
       const idx = activeProcesses.indexOf(proc);
       if (idx !== -1) activeProcesses.splice(idx, 1);
-      resolve({ success: false, output: err.message });
+      promResolve({ success: false, output: err.message });
     });
   });
 }
@@ -298,7 +392,7 @@ async function runIteration(
     task.startTime = Date.now();
     refresh();
 
-    const result = await runAgent(task.name, def["prompt-string"]);
+    const result = await runAgent(task.name, def["prompt-string"], iteration);
     task.endTime = Date.now();
     task.output = result.output;
     if (result.success) {
@@ -386,9 +480,13 @@ async function runIteration(
 // ---------------------------------------------------------------------------
 
 async function main() {
-  // Handle "stop" subcommand
+  // Handle subcommands
   if (process.argv[2] === "stop") {
     requestStop();
+    process.exit(0);
+  }
+  if (process.argv[2] === "status") {
+    showStatus();
     process.exit(0);
   }
 

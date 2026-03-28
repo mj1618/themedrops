@@ -1,0 +1,73 @@
+version: "1"
+
+tasks:
+  planner:
+    concurrency: 1
+    prompt-string: |
+      # Find an improvement or issue
+
+      Look through the swarm/PLAN.md file and the code base in general and find something to improve. Don't add any brand new features - just try to round out the features that are already in place. E.g. if something could be improved, or it's missing something. We're trying to get to a shippable MVP, don't need anything new, everything just needs to work. Don't duplicate what's already in ./swarm/tasks/
+
+      The task should take about 4 hours for a human engineer to complete.
+
+      # Write a feature file
+
+      Then plan out the feature and write it to ./swarm/tasks/{feature-name}.todo.md
+
+      # Exit condition
+
+      If you fail to find an improvement, or if you've successfully written a single feature - exit immediately.
+
+  coder:
+    prompt-string: |
+      # Find a task to complete
+
+      Look under the ./swarm/tasks/ folder for a file suffixed with ".todo.md" - and claim it as a task by renaming it to ".processing.md".
+      Make sure the file you choose doesn't have any dependencies that are not done.
+      Make sure your work won't conflict with other work that is already in progress.
+
+      # Implement the task
+
+      Then read the file and execute the task to completion, adding tests and testing when you think you need to.
+      When done, rename the file to ".done.md" and add a note about what you did.
+
+      Then `git add .`, `git commit -m "a suitable message"` and `git push` your changes to the remote repository.
+
+    depends_on: [planner]
+
+  reviewer:
+    prompt-string: |
+      # Find a task to review
+
+      Look under the ./swarm/tasks/ folder for a file suffixed with ".done.md" - and claim it by renaming it to ".reviewing.md".
+      If no done tasks are found - exit immediately.
+
+      # Review the task
+
+      Read the task file to understand what was supposed to be done.
+      Then review the code changes related to this task. Look for:
+      - Bugs or logic errors
+      - Missing edge cases
+      - Code quality issues
+      - Anything that doesn't match the task requirements
+      - Test using a browser
+
+      # Fix any issues
+
+      If you find issues, fix them directly in the code.
+      Add tests if needed and run existing tests to make sure nothing is broken.
+      Fix issues you come across even if they are outside the scope of the task.
+      You don't have to look for them, but if you come across them - go and fix!
+
+      # Complete the review
+
+      Add a note to the task file summarizing what you reviewed and any fixes you made.
+      Rename the file from ".reviewing.md" to ".reviewed.md".
+      Then `git add .`, `git commit -m "a suitable message"` and `git push` your changes to the remote repository.
+    depends_on: [coder]
+
+pipelines:
+  development:
+    parallelism: 4
+    iterations: 100
+    tasks: [planner, coder, reviewer]

@@ -54,6 +54,7 @@ export default defineSchema({
     .index("by_author", ["authorId"])
     .index("by_star_count", ["starCount"])
     .index("by_public_and_star_count", ["isPublic", "starCount"])
+    .index("by_public_and_creation_time", ["isPublic"])
     .searchIndex("search_name", { searchField: "name" }),
 
   stars: defineTable({

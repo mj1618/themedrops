@@ -45,6 +45,7 @@ export const listPublic = internalQuery({
         author: author?.username ?? null,
         starCount: theme.starCount,
         colors: theme.colors,
+        fonts: theme.fonts ?? null,
       });
     }
 

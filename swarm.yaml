@@ -28,6 +28,8 @@ tasks:
       Then read the file and execute the task to completion, adding tests and testing when you think you need to.
       When done, rename the file to ".done.md" and add a note about what you did.
 
+      Then `git add .`, `git commit -m "a suitable message"` and `git push` your changes to the remote repository.
+
     depends_on: [planner]
 
   reviewer:
@@ -45,12 +47,14 @@ tasks:
       - Missing edge cases
       - Code quality issues
       - Anything that doesn't match the task requirements
-      - Test using a browser or run the tests
+      - Test using a browser
 
       # Fix any issues
 
       If you find issues, fix them directly in the code.
       Add tests if needed and run existing tests to make sure nothing is broken.
+      Fix issues you come across even if they are outside the scope of the task.
+      You don't have to look for them, but if you come across them - go and fix!
 
       # Complete the review
 

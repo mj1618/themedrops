@@ -13,6 +13,41 @@ export const list = query({
   },
 });
 
+export const listNewest = query({
+  args: { paginationOpts: paginationOptsValidator },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("themes")
+      .withIndex("by_public_and_creation_time", (q) => q.eq("isPublic", true))
+      .order("desc")
+      .paginate(args.paginationOpts);
+  },
+});
+
+export const listRecentlyCommented = query({
+  args: {},
+  handler: async (ctx) => {
+    // Get recent comments, then find the distinct public themes they belong to
+    const recentComments = await ctx.db
+      .query("comments")
+      .order("desc")
+      .take(200);
+
+    const seenThemeIds = new Set<string>();
+    const themes = [];
+    for (const comment of recentComments) {
+      if (seenThemeIds.has(comment.themeId)) continue;
+      seenThemeIds.add(comment.themeId);
+      const theme = await ctx.db.get(comment.themeId);
+      if (theme && theme.isPublic) {
+        themes.push(theme);
+      }
+      if (themes.length >= 20) break;
+    }
+    return themes;
+  },
+});
+
 export const getBySlug = query({
   args: { slug: v.string() },
   handler: async (ctx, args) => {

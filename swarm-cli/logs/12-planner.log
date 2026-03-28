@@ -1,0 +1,6 @@
+--- planner (iteration 12) started at 2026-03-26T06:20:31.041Z ---
+Written task file to `swarm/tasks/auth-signin-signup-ui.todo.md`.
+
+**The improvement:** Auth is fully built on the backend but completely non-functional — `providers: []` in `auth.ts` means zero users can sign in, which makes starring, commenting, and forking (all already implemented) dead features. The task wires up the `Password` provider, swaps to `ConvexAuthProvider`, and adds a sign-in/sign-up modal + header controls. No new features — just making the existing ones accessible.
+
+--- exited with code 0 at 2026-03-26T06:23:21.336Z ---
