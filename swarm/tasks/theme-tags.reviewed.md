@@ -69,3 +69,28 @@ All tasks implemented:
 - **Routes**: Created `/tags` index page (grid of all tags with counts) and `/tags/$tagName` page (paginated theme grid filtered by tag)
 - **Detail page**: Tags displayed as clickable pills linking to `/tags/$tagName`
 - **Validation**: Tags normalized to lowercase, deduplicated, empty strings rejected, counts clamped to 0
+
+## Review Notes
+
+Reviewed by: Claude (automated review)
+
+### Issues Found & Fixed
+
+1. **Bug: `getThemesByTag` pagination was broken** (`convex/tags.ts`)
+   - The query used Convex `.paginate()` then filtered the paginated page client-side for the tag. This caused pages to return fewer results than requested (or empty pages) while the cursor advanced past non-matching themes.
+   - **Fix**: Replaced with a scan-and-manual-paginate approach — fetch a batch of themes, filter for the tag, then manually slice for the requested page. This gives consistent page sizes.
+
+2. **Bug: Tag counts wrong when `isPublic` changes** (`convex/themes.ts`)
+   - When a theme's visibility changed (public→private or private→public), the update mutation did not adjust tag counts. A public theme made private kept inflated tag counts; a private theme made public didn't increment counts.
+   - **Fix**: Added four-way visibility handling in the update mutation: both-public (diff tags), public→private (decrement old), private→public (increment new), both-private (no-op). Also handles the case where `isPublic` changes but `tags` arg is not provided.
+
+3. **Improvement: `search` query efficiency** (`convex/tags.ts`)
+   - The search query fetched 200 tags and filtered client-side. Replaced with index range queries on `by_name` for prefix matching, then sorts by count.
+
+### Verified
+
+- All pages render without errors (homepage, /tags, /tags/$tagName, /create, theme detail)
+- TypeScript compiles cleanly with `tsc --noEmit`
+- Tag input component renders correctly with autocomplete, pill chips, and limit enforcement
+- Popular tags section on homepage conditionally renders when tags exist
+- Tag pills on theme detail page link to `/tags/$tagName` correctly

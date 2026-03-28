@@ -367,16 +367,35 @@ export const update = mutation({
     if (args.tags !== undefined) {
       const newTags = validateAndNormalizeTags(args.tags);
       const oldTags = theme.tags ?? [];
+      const wasPublic = theme.isPublic;
       const isPublic = args.isPublic ?? theme.isPublic;
 
-      if (isPublic) {
+      if (wasPublic && isPublic) {
+        // Both public: diff tags normally
         const added = newTags.filter((t) => !oldTags.includes(t));
         const removed = oldTags.filter((t) => !newTags.includes(t));
         if (added.length > 0) await incrementTagCounts(ctx, added);
         if (removed.length > 0) await decrementTagCounts(ctx, removed);
+      } else if (wasPublic && !isPublic) {
+        // Going private: decrement all old tags
+        if (oldTags.length > 0) await decrementTagCounts(ctx, oldTags);
+      } else if (!wasPublic && isPublic) {
+        // Going public: increment all new tags
+        if (newTags.length > 0) await incrementTagCounts(ctx, newTags);
       }
+      // If both private, no count changes needed
 
       updates.tags = newTags;
+    } else if (args.isPublic !== undefined && args.isPublic !== theme.isPublic) {
+      // Visibility changed but tags didn't — still need to adjust counts
+      const tags = theme.tags ?? [];
+      if (tags.length > 0) {
+        if (theme.isPublic && !args.isPublic) {
+          await decrementTagCounts(ctx, tags);
+        } else if (!theme.isPublic && args.isPublic) {
+          await incrementTagCounts(ctx, tags);
+        }
+      }
     }
 
     await ctx.db.patch(args.id, updates);
