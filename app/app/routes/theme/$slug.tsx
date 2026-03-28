@@ -304,7 +304,7 @@ function ThemeDetailPage() {
 
             <Link
               to="/api"
-              search={{ theme: theme.slug } as any}
+              search={{ theme: theme.slug }}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/20 transition-colors"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

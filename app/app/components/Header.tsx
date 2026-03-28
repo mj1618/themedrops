@@ -35,6 +35,7 @@ export function Header() {
               )}
               <Link
                 to="/api"
+                search={{ theme: undefined }}
                 className="text-sm text-td-muted hover:text-td-foreground transition-colors"
               >
                 API

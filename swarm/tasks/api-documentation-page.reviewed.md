@@ -68,3 +68,14 @@ Implemented by creating:
 - Updated `app/app/routes/theme/$slug.tsx` — Added green "API" badge button that deep-links to `/api?theme=<slug>`
 - Route tree auto-regenerated with new `/api` route
 - TypeScript passes clean with no errors
+
+## Review Notes
+
+Reviewed all code changes. Page renders correctly on desktop and mobile, with proper layout for all sections (Hero, Endpoints, Try It, Quick Start, Response Schema).
+
+### Issues found and fixed:
+1. **`as any` type hack on search params** — The `/api` route lacked `validateSearch`, forcing `as any` cast in the theme detail page Link. Added proper `validateSearch` to the route definition with an optional `theme` param.
+2. **Raw `window.location.search` usage** — The API page read the `?theme=` query param via `window.location.search` instead of TanStack Router's `Route.useSearch()`. This bypasses the router's search handling and could break with SSR. Replaced with `Route.useSearch()`.
+3. **Header Link missing required `search` prop** — After adding `validateSearch`, the Header's API link needed the `search` prop. Added `search={{ theme: undefined }}`.
+
+TypeScript compiles cleanly after fixes. Browser testing confirms page renders correctly.

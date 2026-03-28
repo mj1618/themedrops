@@ -7,6 +7,9 @@ import { convertColors } from "../lib/colorConvert";
 
 export const Route = createFileRoute("/api")({
   component: ApiDocsPage,
+  validateSearch: (search: Record<string, unknown>) => ({
+    theme: typeof search.theme === "string" ? search.theme : undefined,
+  }),
 });
 
 type ColorFormat = "hex" | "rgb" | "hsl" | "oklch";
@@ -241,10 +244,7 @@ print(theme["colors"])`,
 }
 
 function ApiDocsPage() {
-  const searchTheme =
-    typeof window !== "undefined"
-      ? new URLSearchParams(window.location.search).get("theme")
-      : null;
+  const { theme: searchTheme } = Route.useSearch();
   const themes = useQuery(api.themes.listPublicForApi, {});
   const [selectedSlug, setSelectedSlug] = useState("");
   const [selectedFormat, setSelectedFormat] = useState<ColorFormat>("hex");
