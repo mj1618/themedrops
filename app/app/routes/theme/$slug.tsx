@@ -6,6 +6,7 @@ import { useTheme } from "../../lib/ThemeProvider";
 import { AuthModal } from "../../components/AuthModal";
 import { useToast } from "../../components/Toast";
 import { ThemeExport } from "../../components/ThemeExport";
+import { ThemePreviewPlayground } from "../../components/ThemePreviewPlayground";
 import { ContrastChecker } from "../../components/ContrastChecker";
 import { SimilarThemes } from "../../components/SimilarThemes";
 import { AddToCollectionModal } from "../../components/AddToCollectionModal";
@@ -377,6 +378,9 @@ function ThemeDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Theme Preview Playground */}
+      <ThemePreviewPlayground colors={theme.colors} fonts={theme.fonts} />
 
       {/* Export Theme */}
       <ThemeExport
