@@ -8,6 +8,22 @@
 - Handles loading and not-found states; consistent header with ThemeDrops logo, CreateThemeLink, AuthControls
 - Build passes cleanly
 
+## Review Notes
+Reviewed by Claude on 2026-03-28. All acceptance criteria verified via code review and browser testing (Playwright).
+
+### Issues found and fixed
+- **Bug: could not clear display name or bio once set.** `handleSave` converted empty strings to `undefined` (`editDisplayName.trim() || undefined`), but the `updateProfile` mutation only patches fields that are not `undefined`. This meant once a user set a bio, clearing the field would leave the old value in place. Fixed by passing the trimmed string directly (empty string `""` is valid per schema).
+
+### Verification
+- Build passes cleanly (`next build`)
+- Browser tests confirmed:
+  - Homepage shows author links (11 found), clicking navigates to `/user/{username}` (not theme)
+  - `/user/nonexistent_user_12345` shows "User not found" message with header
+  - Profile page shows avatar (initial fallback), display name, @username, bio, stats, Themes/Starred tabs
+  - Theme detail page shows clickable author link to `/user/{username}`
+  - Consistent header with ThemeDrops logo and auth controls on all states (loading, not-found, profile)
+- Only safe fields displayed from `getByUsername` (displayName, username, bio, avatarUrl)
+
 ## Context
 The PLAN says "Users should have a profile page similar to like a youtube profile." The backend already has all the queries needed (`users.getByUsername`, `themes.getByAuthor`, `stars.getStarredThemes`, `users.updateProfile`), but there is no frontend page. Author names on the homepage gallery cards and theme detail page are plain text — not links. This is a critical MVP gap: users who create themes have no public presence on the site.
 
@@ -44,9 +60,9 @@ The PLAN says "Users should have a profile page similar to like a youtube profil
 - The profile page should look good even if the user has zero themes
 
 ## Acceptance criteria
-- [ ] `/user/{username}` renders a profile page with user info and their themes
-- [ ] Visiting a non-existent username shows a "User not found" message
-- [ ] Author names on homepage cards link to `/user/{username}`
-- [ ] Author name on theme detail page links to `/user/{username}`
-- [ ] Profile owner can edit their display name and bio inline
-- [ ] Page includes consistent site header with nav back to home
+- [x] `/user/{username}` renders a profile page with user info and their themes
+- [x] Visiting a non-existent username shows a "User not found" message
+- [x] Author names on homepage cards link to `/user/{username}`
+- [x] Author name on theme detail page links to `/user/{username}`
+- [x] Profile owner can edit their display name and bio inline
+- [x] Page includes consistent site header with nav back to home

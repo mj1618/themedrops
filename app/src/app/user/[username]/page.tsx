@@ -146,8 +146,8 @@ export default function UserProfilePage() {
     setSaveError(null);
     try {
       await updateProfile({
-        displayName: editDisplayName.trim() || undefined,
-        bio: editBio.trim() || undefined,
+        displayName: editDisplayName.trim(),
+        bio: editBio.trim(),
       });
       setEditing(false);
     } catch (err) {
