@@ -28,9 +28,13 @@ export function ThemeExport({ name, slug, colors, fonts }: Props) {
 
   const codeForTab = tab === "css" ? cssCode : tab === "tailwind" ? tailwindCode : jsonCode;
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast("Copied to clipboard", "success");
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast("Copied to clipboard", "success");
+    } catch {
+      toast("Failed to copy to clipboard", "error");
+    }
   };
 
   const tabs: { key: Tab; label: string }[] = [
