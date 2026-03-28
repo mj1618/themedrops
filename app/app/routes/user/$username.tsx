@@ -3,6 +3,19 @@ import { useQuery, usePaginatedQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { ThemeCard } from "../../components/ThemeCard";
 
+function EditProfileButton({ username }: { username: string }) {
+  const currentUser = useQuery(api.users.currentUser);
+  if (!currentUser || currentUser.username !== username) return null;
+  return (
+    <Link
+      to="/settings"
+      className="px-4 py-1.5 text-sm font-medium rounded-lg bg-td-secondary text-td-foreground border border-white/10 hover:border-white/20 transition-colors"
+    >
+      Edit Profile
+    </Link>
+  );
+}
+
 export const Route = createFileRoute("/user/$username")({
   component: UserProfilePage,
 });
@@ -48,10 +61,13 @@ function UserProfilePage() {
         <div className="w-20 h-20 rounded-2xl bg-td-primary/20 flex items-center justify-center text-td-primary text-3xl font-bold">
           {(user.displayName || user.username || "?")[0].toUpperCase()}
         </div>
-        <div>
-          <h1 className="text-2xl font-bold text-td-foreground">
-            {user.displayName || user.username}
-          </h1>
+        <div className="flex-1">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-td-foreground">
+              {user.displayName || user.username}
+            </h1>
+            <EditProfileButton username={username} />
+          </div>
           <p className="text-td-muted">@{user.username}</p>
           {user.bio && (
             <p className="text-td-muted mt-1 text-sm">{user.bio}</p>

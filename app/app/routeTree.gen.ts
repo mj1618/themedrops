@@ -9,12 +9,18 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as CreateRouteImport } from './routes/create'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UserUsernameRouteImport } from './routes/user/$username'
 import { Route as ThemeSlugRouteImport } from './routes/theme/$slug'
 import { Route as ThemeSlugEditRouteImport } from './routes/theme/$slug.edit'
 
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CreateRoute = CreateRouteImport.update({
   id: '/create',
   path: '/create',
@@ -44,6 +50,7 @@ const ThemeSlugEditRoute = ThemeSlugEditRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/create': typeof CreateRoute
+  '/settings': typeof SettingsRoute
   '/theme/$slug': typeof ThemeSlugRouteWithChildren
   '/user/$username': typeof UserUsernameRoute
   '/theme/$slug/edit': typeof ThemeSlugEditRoute
@@ -51,6 +58,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/create': typeof CreateRoute
+  '/settings': typeof SettingsRoute
   '/theme/$slug': typeof ThemeSlugRouteWithChildren
   '/user/$username': typeof UserUsernameRoute
   '/theme/$slug/edit': typeof ThemeSlugEditRoute
@@ -59,6 +67,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/create': typeof CreateRoute
+  '/settings': typeof SettingsRoute
   '/theme/$slug': typeof ThemeSlugRouteWithChildren
   '/user/$username': typeof UserUsernameRoute
   '/theme/$slug/edit': typeof ThemeSlugEditRoute
@@ -68,15 +77,23 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/create'
+    | '/settings'
     | '/theme/$slug'
     | '/user/$username'
     | '/theme/$slug/edit'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/create' | '/theme/$slug' | '/user/$username' | '/theme/$slug/edit'
+  to:
+    | '/'
+    | '/create'
+    | '/settings'
+    | '/theme/$slug'
+    | '/user/$username'
+    | '/theme/$slug/edit'
   id:
     | '__root__'
     | '/'
     | '/create'
+    | '/settings'
     | '/theme/$slug'
     | '/user/$username'
     | '/theme/$slug/edit'
@@ -85,12 +102,20 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CreateRoute: typeof CreateRoute
+  SettingsRoute: typeof SettingsRoute
   ThemeSlugRoute: typeof ThemeSlugRouteWithChildren
   UserUsernameRoute: typeof UserUsernameRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/create': {
       id: '/create'
       path: '/create'
@@ -144,6 +169,7 @@ const ThemeSlugRouteWithChildren = ThemeSlugRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CreateRoute: CreateRoute,
+  SettingsRoute: SettingsRoute,
   ThemeSlugRoute: ThemeSlugRouteWithChildren,
   UserUsernameRoute: UserUsernameRoute,
 }
