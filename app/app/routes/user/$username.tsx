@@ -58,9 +58,17 @@ function UserProfilePage() {
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-8">
       {/* Profile header */}
       <div className="flex items-center gap-5">
-        <div className="w-20 h-20 rounded-2xl bg-td-primary/20 flex items-center justify-center text-td-primary text-3xl font-bold">
-          {(user.displayName || user.username || "?")[0].toUpperCase()}
-        </div>
+        {user.avatarUrl ? (
+          <img
+            src={user.avatarUrl}
+            alt={user.displayName || user.username || "Avatar"}
+            className="w-20 h-20 rounded-2xl object-cover bg-td-secondary"
+          />
+        ) : (
+          <div className="w-20 h-20 rounded-2xl bg-td-primary/20 flex items-center justify-center text-td-primary text-3xl font-bold">
+            {(user.displayName || user.username || "?")[0].toUpperCase()}
+          </div>
+        )}
         <div className="flex-1">
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold text-td-foreground">

@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { AuthModal } from "../components/AuthModal";
 
 export const Route = createFileRoute("/settings")({
@@ -90,6 +90,11 @@ function ProfileForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
+
+  useEffect(() => {
+    setAvatarError(false);
+  }, [avatarUrl]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -143,24 +148,18 @@ function ProfileForm({
 
       {/* Avatar preview */}
       <div className="flex items-center gap-4">
-        {avatarUrl.trim() ? (
+        {avatarUrl.trim() && !avatarError ? (
           <img
             src={avatarUrl.trim()}
             alt="Avatar"
             className="w-16 h-16 rounded-2xl object-cover bg-td-secondary"
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = "none";
-              (
-                e.target as HTMLImageElement
-              ).nextElementSibling?.classList.remove("hidden");
-            }}
+            onError={() => setAvatarError(true)}
           />
-        ) : null}
-        <div
-          className={`w-16 h-16 rounded-2xl bg-td-primary/20 flex items-center justify-center text-td-primary text-2xl font-bold ${avatarUrl.trim() ? "hidden" : ""}`}
-        >
-          {avatarLetter}
-        </div>
+        ) : (
+          <div className="w-16 h-16 rounded-2xl bg-td-primary/20 flex items-center justify-center text-td-primary text-2xl font-bold">
+            {avatarLetter}
+          </div>
+        )}
         <div>
           <p className="text-sm font-medium text-td-foreground">
             {displayName.trim() || username}

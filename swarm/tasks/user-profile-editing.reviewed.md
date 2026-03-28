@@ -53,3 +53,19 @@ Implemented by adding:
 - **`app/app/components/Header.tsx`** — Added gear icon link to `/settings` next to the user profile link
 
 Browser testing tasks left unchecked as they require a running dev server and manual verification.
+
+## Review Notes
+
+Reviewed by code review agent on 2026-03-28. Found and fixed three issues:
+
+### Bug fixes
+1. **Avatar image not displayed on profile page** (`app/app/routes/user/$username.tsx`): The profile header only rendered the letter-fallback avatar, never the actual `avatarUrl` image. Added conditional rendering to show `<img>` when `user.avatarUrl` is set.
+
+2. **Avatar image not displayed in header** (`app/app/components/Header.tsx`): Same issue — the header user link only showed the letter-fallback circle. Added conditional rendering to show the avatar image when available.
+
+3. **Fragile DOM manipulation in avatar preview** (`app/app/routes/settings.tsx`): The settings form avatar preview used direct DOM manipulation (`style.display = "none"`, `classList.remove("hidden")`) in the `onError` handler to toggle between the image and letter fallback. This is non-idiomatic React and fragile (depends on DOM sibling order). Replaced with React state (`avatarError` + `useEffect` to reset on URL change).
+
+### Code quality observations (no action needed)
+- Bio has 200-char limit in UI but not server-side — acceptable for an MVP since the mutation is auth-gated.
+- Form state initializes once from props; won't sync if data changes externally (e.g., another tab). Standard form behavior.
+- Browser testing could not fully verify authenticated flows since no `.env.local` with a real Convex URL is configured in this checkout.

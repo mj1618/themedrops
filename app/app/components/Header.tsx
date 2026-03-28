@@ -53,9 +53,17 @@ export function Header() {
                   params={{ username: user.username ?? "" }}
                   className="flex items-center gap-2 text-sm text-td-muted hover:text-td-foreground transition-colors"
                 >
-                  <div className="w-7 h-7 rounded-full bg-td-primary/20 flex items-center justify-center text-td-primary text-xs font-bold">
-                    {(user.displayName || user.username || "?")[0].toUpperCase()}
-                  </div>
+                  {user.avatarUrl ? (
+                    <img
+                      src={user.avatarUrl}
+                      alt="Avatar"
+                      className="w-7 h-7 rounded-full object-cover bg-td-secondary"
+                    />
+                  ) : (
+                    <div className="w-7 h-7 rounded-full bg-td-primary/20 flex items-center justify-center text-td-primary text-xs font-bold">
+                      {(user.displayName || user.username || "?")[0].toUpperCase()}
+                    </div>
+                  )}
                   <span className="hidden md:inline">{user.displayName || user.username}</span>
                 </Link>
               </div>
