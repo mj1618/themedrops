@@ -136,8 +136,10 @@ export default function ThemeDetailPage() {
     theme ? { themeId: theme._id } : "skip"
   );
   const createComment = useMutation(api.comments.create);
+  const removeComment = useMutation(api.comments.remove);
   const [commentBody, setCommentBody] = useState("");
   const [submittingComment, setSubmittingComment] = useState(false);
+  const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
 
   // Fork
   const forkTheme = useMutation(api.themes.fork);
@@ -300,6 +302,16 @@ export default function ThemeDetailPage() {
       setCommentBody("");
     } finally {
       setSubmittingComment(false);
+    }
+  }
+
+  async function handleDeleteComment(commentId: string) {
+    if (!window.confirm("Delete this comment?")) return;
+    setDeletingCommentId(commentId);
+    try {
+      await removeComment({ id: commentId as Parameters<typeof removeComment>[0]["id"] });
+    } finally {
+      setDeletingCommentId(null);
     }
   }
 
@@ -516,7 +528,7 @@ export default function ThemeDetailPage() {
 
           {!editing && (
             <p className="text-xs text-gray-400 font-mono bg-gray-100 inline-block px-2 py-1 rounded">
-              API: /api/theme/{theme.slug}
+              API: /api/themes/{theme.slug}
             </p>
           )}
         </div>
@@ -694,19 +706,30 @@ export default function ThemeDetailPage() {
                     key={comment._id}
                     className="bg-white rounded-lg border border-gray-200 p-4"
                   >
-                    <div className="flex items-center gap-2 mb-2">
-                      {comment.author?.avatarUrl && (
-                        <img
-                          src={comment.author.avatarUrl}
-                          alt=""
-                          className="w-6 h-6 rounded-full"
-                        />
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        {comment.author?.avatarUrl && (
+                          <img
+                            src={comment.author.avatarUrl}
+                            alt=""
+                            className="w-6 h-6 rounded-full"
+                          />
+                        )}
+                        <span className="text-sm font-medium text-gray-700">
+                          {comment.author?.displayName ??
+                            comment.author?.username ??
+                            "Unknown"}
+                        </span>
+                      </div>
+                      {currentUser?._id === comment.userId && (
+                        <button
+                          onClick={() => handleDeleteComment(comment._id)}
+                          disabled={deletingCommentId === comment._id}
+                          className="text-xs text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
+                        >
+                          {deletingCommentId === comment._id ? "Deleting..." : "Delete"}
+                        </button>
                       )}
-                      <span className="text-sm font-medium text-gray-700">
-                        {comment.author?.displayName ??
-                          comment.author?.username ??
-                          "Unknown"}
-                      </span>
                     </div>
                     <p className="text-sm text-gray-600">{comment.body}</p>
                   </div>
