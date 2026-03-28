@@ -1,0 +1,53 @@
+{
+  "name": "themedrops",
+  "displayName": "ThemeDrops",
+  "description": "Browse and apply color themes from themedrops.com directly in VS Code",
+  "version": "0.1.0",
+  "publisher": "themedrops",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Themes"
+  ],
+  "icon": "icon.png",
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "themedrops.browse",
+        "title": "ThemeDrops: Browse Themes"
+      },
+      {
+        "command": "themedrops.search",
+        "title": "ThemeDrops: Search Themes"
+      },
+      {
+        "command": "themedrops.reset",
+        "title": "ThemeDrops: Reset Colors"
+      }
+    ],
+    "configuration": {
+      "title": "ThemeDrops",
+      "properties": {
+        "themedrops.apiUrl": {
+          "type": "string",
+          "default": "https://themedrops.com",
+          "description": "Base URL for the ThemeDrops API"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "npx @vscode/vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.3.0"
+  }
+}

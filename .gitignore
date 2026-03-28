@@ -2,3 +2,6 @@ node_modules/
 dist/
 .state.json
 .stop
+swarm-cli/logs/
+vscode-extension/out/
+vscode-extension/*.vsix
