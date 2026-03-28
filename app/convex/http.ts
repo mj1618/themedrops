@@ -232,8 +232,8 @@ http.route({
         const x = swatchStartX + i * (swatchWidth + swatchGap);
         return `
           <rect x="${x}" y="260" width="${swatchWidth}" height="${swatchWidth}" rx="16" fill="${color}" />
-          <text x="${x + swatchWidth / 2}" y="${260 + swatchWidth + 30}" text-anchor="middle" fill="#999" font-size="18" font-family="system-ui, sans-serif">${name}</text>
-          <text x="${x + swatchWidth / 2}" y="${260 + swatchWidth + 55}" text-anchor="middle" fill="#666" font-size="14" font-family="monospace">${color}</text>
+          <text x="${x + swatchWidth / 2}" y="${260 + swatchWidth + 30}" text-anchor="middle" fill="${colors.muted}" font-size="18" font-family="system-ui, sans-serif">${name}</text>
+          <text x="${x + swatchWidth / 2}" y="${260 + swatchWidth + 55}" text-anchor="middle" fill="${colors.muted}" font-size="14" font-family="monospace">${escapeXml(color)}</text>
         `;
       })
       .join("");

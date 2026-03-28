@@ -10,6 +10,7 @@
   "dependencies": {
     "@auth/core": "^0.37.4",
     "@convex-dev/auth": "^0.0.82",
+    "@tanstack/nitro-v2-vite-plugin": "^1.154.9",
     "@tanstack/react-router": "^1.120.2",
     "@tanstack/react-start": "^1.120.2",
     "@vitejs/plugin-react": "^4.5.2",

@@ -37,6 +37,7 @@ export const Route = createFileRoute("/theme/$slug")({
         { property: "og:title", content: title },
         { property: "og:description", content: description },
         { property: "og:type", content: "website" },
+        { property: "og:url", content: `https://themedrops.com/theme/${theme.slug}` },
         { property: "og:site_name", content: "themedrops" },
         ...(ogImageUrl ? [{ property: "og:image", content: ogImageUrl }] : []),
         { name: "twitter:card", content: "summary_large_image" },
@@ -104,8 +105,15 @@ function ThemeDetailPage() {
         setShowShareMenu(false);
       }
     };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowShareMenu(false);
+    };
     document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, [showShareMenu]);
 
   if (theme === undefined) {

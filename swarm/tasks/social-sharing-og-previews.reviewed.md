@@ -1,5 +1,17 @@
 # Social Sharing & OG Preview Meta Tags
 
+## Review Notes
+
+Reviewed by Claude. All four subtasks were implemented correctly. Browser-tested the share dropdown and meta tags on a live theme page (`/theme/ocean-breeze`). Found and fixed the following issues:
+
+1. **Missing `og:url` meta tag** — The task spec required `og:url` with the canonical URL but it was omitted from the `head` function. Added `og:url` pointing to `https://themedrops.com/theme/${slug}`.
+
+2. **OG SVG swatch labels used hardcoded colors** — The swatch name and hex labels in the OG image SVG used hardcoded `#999`/`#666` fills, which could be unreadable on certain theme backgrounds. Changed to use `colors.muted` from the theme itself, and added `escapeXml()` to the hex color values for safety.
+
+3. **Share dropdown missing Escape key handler** — The dropdown only closed on click-outside. Added a `keydown` listener for Escape to close the menu, improving keyboard accessibility.
+
+All fixes verified: TypeScript compiles cleanly, browser tests pass (dropdown opens/closes, meta tags render correctly in page source).
+
 ## Completion Notes
 
 Implemented all four subtasks:
