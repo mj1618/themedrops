@@ -84,8 +84,9 @@ export const addTheme = mutation({
     // Prevent duplicates
     const existing = await ctx.db
       .query("collectionItems")
-      .withIndex("by_collection", (q) => q.eq("collectionId", args.collectionId))
-      .filter((q) => q.eq(q.field("themeId"), args.themeId))
+      .withIndex("by_collection_and_theme", (q) =>
+        q.eq("collectionId", args.collectionId).eq("themeId", args.themeId)
+      )
       .first();
     if (existing) throw new Error("Theme already in collection");
 
@@ -119,8 +120,9 @@ export const removeTheme = mutation({
 
     const item = await ctx.db
       .query("collectionItems")
-      .withIndex("by_collection", (q) => q.eq("collectionId", args.collectionId))
-      .filter((q) => q.eq(q.field("themeId"), args.themeId))
+      .withIndex("by_collection_and_theme", (q) =>
+        q.eq("collectionId", args.collectionId).eq("themeId", args.themeId)
+      )
       .first();
     if (item) {
       await ctx.db.delete(item._id);
@@ -134,20 +136,17 @@ export const get = query({
     const collection = await ctx.db.get(args.id);
     if (!collection) return null;
 
-    // Check visibility
-    if (!collection.isPublic) {
-      const session = await auth.getSessionId(ctx);
-      let currentUserId = null;
-      if (session) {
-        currentUserId = (
-          await ctx.db
-            .query("authSessions")
-            .filter((q) => q.eq(q.field("_id"), session))
-            .first()
-        )?.userId;
-      }
-      if (currentUserId !== collection.userId) return null;
+    // Resolve current user once
+    const session = await auth.getSessionId(ctx);
+    let currentUserId = null;
+    if (session) {
+      const sessionDoc = await ctx.db.get(session);
+      currentUserId = sessionDoc?.userId ?? null;
     }
+    const isOwner = currentUserId === collection.userId;
+
+    // Check visibility — private collections only visible to owner
+    if (!collection.isPublic && !isOwner) return null;
 
     const owner = await ctx.db.get(collection.userId);
 
@@ -175,19 +174,6 @@ export const get = query({
       })
     );
 
-    // Check if current user is owner
-    const session = await auth.getSessionId(ctx);
-    let isOwner = false;
-    if (session) {
-      const currentUserId = (
-        await ctx.db
-          .query("authSessions")
-          .filter((q) => q.eq(q.field("_id"), session))
-          .first()
-      )?.userId;
-      isOwner = currentUserId === collection.userId;
-    }
-
     return {
       ...collection,
       owner: owner
@@ -209,12 +195,8 @@ export const listByUser = query({
     const session = await auth.getSessionId(ctx);
     let currentUserId = null;
     if (session) {
-      currentUserId = (
-        await ctx.db
-          .query("authSessions")
-          .filter((q) => q.eq(q.field("_id"), session))
-          .first()
-      )?.userId;
+      const sessionDoc = await ctx.db.get(session);
+      currentUserId = sessionDoc?.userId ?? null;
     }
 
     const isOwner = currentUserId === args.userId;
@@ -277,8 +259,9 @@ export const listMyCollections = query({
       collections.map(async (collection) => {
         const item = await ctx.db
           .query("collectionItems")
-          .withIndex("by_collection", (q) => q.eq("collectionId", collection._id))
-          .filter((q) => q.eq(q.field("themeId"), args.themeId))
+          .withIndex("by_collection_and_theme", (q) =>
+            q.eq("collectionId", collection._id).eq("themeId", args.themeId!)
+          )
           .first();
         return { ...collection, hasTheme: !!item };
       })

@@ -93,5 +93,6 @@ export default defineSchema({
     order: v.number(),
   })
     .index("by_collection", ["collectionId"])
+    .index("by_collection_and_theme", ["collectionId", "themeId"])
     .index("by_theme", ["themeId"]),
 });

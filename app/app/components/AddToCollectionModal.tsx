@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { useToast } from "./Toast";
 
 type AddToCollectionModalProps = {
   themeId: string;
@@ -8,6 +9,7 @@ type AddToCollectionModalProps = {
 };
 
 export function AddToCollectionModal({ themeId, onClose }: AddToCollectionModalProps) {
+  const { toast } = useToast();
   const collections = useQuery(api.collections.listMyCollections, {
     themeId: themeId as any,
   });
@@ -29,7 +31,7 @@ export function AddToCollectionModal({ themeId, onClose }: AddToCollectionModalP
         await addTheme({ collectionId: collectionId as any, themeId: themeId as any });
       }
     } catch {
-      // error handled silently
+      toast("Failed to update collection", "error");
     } finally {
       setToggling(null);
     }
@@ -44,7 +46,7 @@ export function AddToCollectionModal({ themeId, onClose }: AddToCollectionModalP
       setNewName("");
       setShowCreate(false);
     } catch {
-      // error handled silently
+      toast("Failed to create collection", "error");
     } finally {
       setCreating(false);
     }
