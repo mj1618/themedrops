@@ -15,13 +15,14 @@ type ThemeFonts = {
   mono: string;
 };
 
-type Scene = "dashboard" | "chat" | "blog" | "form";
+type Scene = "dashboard" | "chat" | "blog" | "form" | "code";
 
 const SCENES: { key: Scene; label: string }[] = [
   { key: "dashboard", label: "Dashboard" },
   { key: "chat", label: "Chat" },
   { key: "blog", label: "Blog" },
   { key: "form", label: "Form" },
+  { key: "code", label: "Code" },
 ];
 
 const SYSTEM_FONTS = [
@@ -710,6 +711,154 @@ function FormScene({
   );
 }
 
+function CodeScene({ colors, fonts }: { colors: ThemeColors; fonts: ThemeFonts }) {
+  const kw = colors.primary;
+  const str = colors.accent;
+  const comment = colors.muted;
+  const fn = colors.secondary;
+  const fg = colors.foreground;
+  const bg = colors.background;
+  const lineNumColor = withOpacity(colors.muted, 0.5);
+  const activeLine = withOpacity(colors.primary, 0.06);
+  const tabBg = withOpacity(colors.foreground, 0.06);
+
+  type Token = { text: string; color: string; style?: React.CSSProperties };
+  type Line = Token[];
+
+  const lines: Line[] = [
+    [
+      { text: "import", color: kw },
+      { text: " { useState } ", color: fg },
+      { text: "from", color: kw },
+      { text: ' "react"', color: str },
+      { text: ";", color: fg },
+    ],
+    [
+      { text: "import", color: kw },
+      { text: " { ThemeCard } ", color: fg },
+      { text: "from", color: kw },
+      { text: ' "./components"', color: str },
+      { text: ";", color: fg },
+    ],
+    [{ text: "", color: fg }],
+    [
+      { text: "// Theme gallery page", color: comment, style: { fontStyle: "italic" } },
+    ],
+    [
+      { text: "export default ", color: kw },
+      { text: "function ", color: kw },
+      { text: "Gallery", color: fn },
+      { text: "() {", color: fg },
+    ],
+    [
+      { text: "  const ", color: kw },
+      { text: "[themes, setThemes] = ", color: fg },
+      { text: "useState", color: fn },
+      { text: "<", color: fg },
+      { text: "Theme", color: fn },
+      { text: "[]>([])", color: fg },
+      { text: ";", color: fg },
+    ],
+    [{ text: "", color: fg }],
+    [
+      { text: "  return ", color: kw },
+      { text: "(", color: fg },
+    ],
+    [
+      { text: "    <", color: fg },
+      { text: "div", color: fn },
+      { text: " className=", color: fg },
+      { text: '"grid gap-4"', color: str },
+      { text: ">", color: fg },
+    ],
+    [
+      { text: "      {themes.map((theme) => (", color: fg },
+    ],
+    [
+      { text: "        <", color: fg },
+      { text: "ThemeCard", color: fn },
+      { text: " key=", color: fg },
+      { text: "{theme.id}", color: kw },
+      { text: " theme=", color: fg },
+      { text: "{theme}", color: kw },
+      { text: " />", color: fg },
+    ],
+    [
+      { text: "      ))}", color: fg },
+    ],
+    [
+      { text: "    </", color: fg },
+      { text: "div", color: fn },
+      { text: ">", color: fg },
+    ],
+    [
+      { text: "  );", color: fg },
+    ],
+    [
+      { text: "}", color: fg },
+    ],
+  ];
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", minHeight: 320, backgroundColor: bg, fontFamily: fonts.mono }}>
+      {/* Title bar */}
+      <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", backgroundColor: withOpacity(colors.foreground, 0.04), borderBottom: `1px solid ${withOpacity(colors.foreground, 0.08)}` }}>
+        <div style={{ width: 10, height: 10, borderRadius: "50%", backgroundColor: withOpacity(colors.foreground, 0.15) }} />
+        <div style={{ width: 10, height: 10, borderRadius: "50%", backgroundColor: withOpacity(colors.foreground, 0.15) }} />
+        <div style={{ width: 10, height: 10, borderRadius: "50%", backgroundColor: withOpacity(colors.foreground, 0.15) }} />
+      </div>
+
+      {/* File tabs */}
+      <div style={{ display: "flex", gap: 1, backgroundColor: withOpacity(colors.foreground, 0.04), borderBottom: `1px solid ${withOpacity(colors.foreground, 0.08)}` }}>
+        <div style={{ padding: "5px 14px", fontSize: 11, color: fg, backgroundColor: bg, borderBottom: `2px solid ${colors.primary}` }}>
+          Gallery.tsx
+        </div>
+        <div style={{ padding: "5px 14px", fontSize: 11, color: comment, backgroundColor: tabBg }}>
+          ThemeCard.tsx
+        </div>
+        <div style={{ padding: "5px 14px", fontSize: 11, color: comment, backgroundColor: tabBg }}>
+          api.ts
+        </div>
+      </div>
+
+      {/* Code area */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "8px 0" }}>
+        {lines.map((line, i) => (
+          <div
+            key={i}
+            style={{
+              display: "flex",
+              alignItems: "baseline",
+              padding: "1px 12px 1px 0",
+              backgroundColor: i === 4 ? activeLine : "transparent",
+              lineHeight: "1.6",
+            }}
+          >
+            {/* Line number */}
+            <span style={{ width: 36, textAlign: "right", paddingRight: 16, fontSize: 11, color: lineNumColor, flexShrink: 0, userSelect: "none" }}>
+              {i + 1}
+            </span>
+            {/* Tokens */}
+            <span style={{ fontSize: 12 }}>
+              {line.map((token, j) => (
+                <span key={j} style={{ color: token.color, ...token.style }}>
+                  {token.text}
+                </span>
+              ))}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* Status bar */}
+      <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 12px", backgroundColor: colors.primary, fontSize: 10, color: "rgba(255,255,255,0.85)" }}>
+        <span>TypeScript · Gallery.tsx</span>
+        <span>Ln 5, Col 12</span>
+      </div>
+    </div>
+  );
+}
+
 export function ThemePreviewPlayground({
   colors,
   fonts,
@@ -776,6 +925,9 @@ export function ThemePreviewPlayground({
           )}
           {activeScene === "form" && (
             <FormScene colors={colors} fonts={fonts} />
+          )}
+          {activeScene === "code" && (
+            <CodeScene colors={colors} fonts={fonts} />
           )}
         </div>
       </div>

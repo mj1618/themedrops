@@ -2579,3 +2579,97 @@ export const backfillPlatformThemes = mutation({
     return `Updated ${updated} themes with platform data`;
   },
 });
+
+// ── Server-side color derivation (mirrors ThemeForm.tsx helpers) ─────────────
+
+function isColorDark(hex: string): boolean {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return (r * 299 + g * 587 + b * 114) / 1000 < 128;
+}
+
+function blendHex(a: string, b: string, t: number): string {
+  const p = (s: string, o: number) => parseInt(s.slice(o, o + 2), 16);
+  const r = Math.round(p(a, 1) + (p(b, 1) - p(a, 1)) * t).toString(16).padStart(2, "0");
+  const g = Math.round(p(a, 3) + (p(b, 3) - p(a, 3)) * t).toString(16).padStart(2, "0");
+  const bl = Math.round(p(a, 5) + (p(b, 5) - p(a, 5)) * t).toString(16).padStart(2, "0");
+  return `#${r}${g}${bl}`;
+}
+
+type BaseColors = { background: string; foreground: string; primary: string; secondary: string; accent: string; muted: string };
+
+function deriveVSCode(c: BaseColors) {
+  const dark = isColorDark(c.background);
+  return {
+    keyword: c.accent, string: dark ? "#a3e635" : "#16a34a",
+    comment: c.muted, function: c.primary, variable: c.foreground,
+    type: dark ? "#fbbf24" : "#d97706", number: dark ? "#f472b6" : "#db2777",
+    operator: blendHex(c.foreground, c.muted, 0.5), punctuation: c.muted,
+  };
+}
+
+function deriveDiscord(c: BaseColors) {
+  const dark = isColorDark(c.background);
+  return dark ? {
+    backgroundPrimary: blendHex(c.background, "#ffffff", 0.08),
+    backgroundSecondary: blendHex(c.background, "#ffffff", 0.04),
+    backgroundTertiary: c.background,
+    backgroundFloating: blendHex(c.background, "#000000", 0.2),
+    textNormal: c.foreground, textMuted: c.muted, textLink: c.primary,
+    interactiveNormal: blendHex(c.foreground, c.muted, 0.4),
+    interactiveHover: c.foreground, interactiveActive: "#ffffff",
+    statusOnline: "#3ba55d", statusIdle: "#faa61a", statusDnd: "#ed4245", statusOffline: "#747f8d",
+    brand: c.primary,
+  } : {
+    backgroundPrimary: c.background,
+    backgroundSecondary: blendHex(c.background, "#000000", 0.05),
+    backgroundTertiary: blendHex(c.background, "#000000", 0.1),
+    backgroundFloating: "#ffffff",
+    textNormal: c.foreground, textMuted: c.muted, textLink: c.primary,
+    interactiveNormal: blendHex(c.foreground, c.background, 0.3),
+    interactiveHover: c.foreground, interactiveActive: blendHex(c.foreground, "#000000", 0.15),
+    statusOnline: "#3ba55d", statusIdle: "#faa61a", statusDnd: "#ed4245", statusOffline: "#747f8d",
+    brand: c.primary,
+  };
+}
+
+function deriveTailwind(c: BaseColors) {
+  const dark = isColorDark(c.background);
+  const fg = (hex: string) => (isColorDark(hex) ? "#ffffff" : "#0f172a");
+  return {
+    primaryForeground: fg(c.primary), secondaryForeground: fg(c.secondary),
+    accentForeground: fg(c.accent), mutedForeground: c.foreground,
+    card: dark ? blendHex(c.background, "#ffffff", 0.05) : "#ffffff",
+    cardForeground: c.foreground,
+    popover: dark ? blendHex(c.background, "#ffffff", 0.05) : "#ffffff",
+    popoverForeground: c.foreground,
+    border: dark ? blendHex(c.background, "#ffffff", 0.15) : blendHex(c.background, "#000000", 0.1),
+    input: dark ? blendHex(c.background, "#ffffff", 0.15) : blendHex(c.background, "#000000", 0.1),
+    ring: c.primary, destructive: dark ? "#ef4444" : "#dc2626",
+    destructiveForeground: "#ffffff", radius: "0.5rem",
+  };
+}
+
+// Derives and patches platform colors for ALL themes missing any platform field,
+// using their base colors. Safe to run multiple times (idempotent).
+export const backfillAllThemes = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const themes = await ctx.db.query("themes").take(500);
+    let updated = 0;
+
+    for (const theme of themes) {
+      if (theme.vscode && theme.discord && theme.tailwind) continue;
+
+      await ctx.db.patch(theme._id, {
+        vscode: theme.vscode ?? deriveVSCode(theme.colors),
+        discord: theme.discord ?? deriveDiscord(theme.colors),
+        tailwind: theme.tailwind ?? deriveTailwind(theme.colors),
+      });
+      updated++;
+    }
+
+    return `Updated ${updated} themes`;
+  },
+});
