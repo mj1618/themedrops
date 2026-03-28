@@ -4,6 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { useState } from "react";
+import Link from "next/link";
 import AuthControls from "../../components/AuthControls";
 import CreateThemeLink from "../../components/CreateThemeLink";
 
@@ -355,9 +356,12 @@ export default function ThemeDetailPage() {
               {author && (
                 <p className="text-sm text-gray-500">
                   by{" "}
-                  <span className="font-medium text-gray-700">
+                  <Link
+                    href={`/user/${author.username}`}
+                    className="font-medium text-gray-700 hover:text-blue-600 transition-colors"
+                  >
                     {author.displayName ?? author.username}
-                  </span>
+                  </Link>
                 </p>
               )}
             </div>

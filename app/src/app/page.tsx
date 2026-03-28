@@ -75,7 +75,13 @@ function ThemeCard({
 
         {author && (
           <p className="text-xs text-gray-400 mt-0.5 truncate">
-            {author.displayName ?? author.username}
+            <Link
+              href={`/user/${author.username}`}
+              onClick={(e) => e.stopPropagation()}
+              className="hover:text-gray-600 transition-colors"
+            >
+              {author.displayName ?? author.username}
+            </Link>
           </p>
         )}
 
