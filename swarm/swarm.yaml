@@ -2,7 +2,6 @@ version: "1"
 
 tasks:
   planner:
-    concurrency: 1
     prompt-string: |
       # Find an improvement or issue
 
@@ -68,6 +67,5 @@ tasks:
 
 pipelines:
   development:
-    parallelism: 4
     iterations: 100
     tasks: [planner, coder, reviewer]

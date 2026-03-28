@@ -1,6 +1,6 @@
 # Swarm CLI
 
-A CLI tool that runs and manages AI agent pipelines defined in `swarm.yaml`.
+A CLI tool that runs and manages AI agent pipelines defined in `swarm/swarm.yaml`.
 
 ## Setup
 
@@ -63,8 +63,8 @@ swarm-cli/          # CLI tool (separate from project source)
   src/index.ts      # Main CLI entry point
   package.json
   .state.json       # Auto-generated state file for resume
-swarm.yaml          # Pipeline definition
 swarm/
+  swarm.yaml          # Pipeline definition
   PLAN.md           # Plan file referenced by planner agent
   tasks/            # Task files created/managed by agents
 ```

@@ -1,6 +1,14 @@
 import chalk from "chalk";
 import { ChildProcess, spawn } from "child_process";
-import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, unlinkSync, writeFileSync } from "fs";
+import {
+  appendFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  unlinkSync,
+  writeFileSync,
+} from "fs";
 import { execSync } from "child_process";
 import { dirname, resolve } from "path";
 import { parse as parseYaml } from "yaml";
@@ -58,7 +66,7 @@ const PROJECT_ROOT = resolve(
   dirname(new URL(import.meta.url).pathname),
   "../..",
 );
-const SWARM_FILE = resolve(PROJECT_ROOT, "swarm.yaml");
+const SWARM_FILE = resolve(PROJECT_ROOT, "swarm/swarm.yaml");
 const STATE_FILE = resolve(PROJECT_ROOT, "swarm-cli/.state.json");
 const STOP_FILE = resolve(PROJECT_ROOT, "swarm-cli/.stop");
 const LOGS_DIR = resolve(PROJECT_ROOT, "swarm-cli/logs");
@@ -94,17 +102,25 @@ function saveState(state: StateFile) {
 }
 
 function clearState() {
-  try { unlinkSync(STATE_FILE); } catch {}
+  try {
+    unlinkSync(STATE_FILE);
+  } catch {}
 }
 
 function requestStop() {
   writeFileSync(STOP_FILE, String(Date.now()));
-  console.log(chalk.yellow("Stop signal sent. The pipeline will halt after the current task finishes."));
+  console.log(
+    chalk.yellow(
+      "Stop signal sent. The pipeline will halt after the current task finishes.",
+    ),
+  );
 }
 
 function checkStopRequested(): boolean {
   if (existsSync(STOP_FILE)) {
-    try { unlinkSync(STOP_FILE); } catch {}
+    try {
+      unlinkSync(STOP_FILE);
+    } catch {}
     return true;
   }
   return false;
@@ -119,24 +135,38 @@ function showStatus() {
   // Pipeline state
   if (state) {
     console.log(chalk.bold.cyan(`  Pipeline: ${state.pipeline}`));
-    console.log(chalk.gray(`  Completed iterations: ${state.completedIterations}`));
-    console.log(chalk.gray(`  Current iteration:    ${state.currentIteration}`));
+    console.log(
+      chalk.gray(`  Completed iterations: ${state.completedIterations}`),
+    );
+    console.log(
+      chalk.gray(`  Current iteration:    ${state.currentIteration}`),
+    );
     if (Object.keys(state.taskResults).length > 0) {
       console.log("");
       console.log(chalk.bold("  Last iteration results:"));
       for (const [name, status] of Object.entries(state.taskResults)) {
-        const icon = status === "done" ? chalk.green("✓") : status === "failed" ? chalk.red("✗") : chalk.gray("○");
+        const icon =
+          status === "done"
+            ? chalk.green("✓")
+            : status === "failed"
+              ? chalk.red("✗")
+              : chalk.gray("○");
         console.log(`  ${icon} ${name}: ${status}`);
       }
     }
   } else {
-    console.log(chalk.gray("  No pipeline state found (not started or fully completed)."));
+    console.log(
+      chalk.gray("  No pipeline state found (not started or fully completed)."),
+    );
   }
 
   // Running agents
   console.log("");
   try {
-    const pids = execSync("pgrep -f 'claude.*-p.*--dangerously-skip-permissions'", { encoding: "utf-8" }).trim();
+    const pids = execSync(
+      "pgrep -f 'claude.*-p.*--dangerously-skip-permissions'",
+      { encoding: "utf-8" },
+    ).trim();
     const count = pids ? pids.split("\n").length : 0;
     if (count > 0) {
       console.log(chalk.blue.bold(`  Running agents: ${count}`));
@@ -153,7 +183,9 @@ function showStatus() {
   // Task files
   console.log("");
   if (existsSync(TASKS_DIR)) {
-    const files = readdirSync(TASKS_DIR).filter((f: string) => f.endsWith(".md")).sort();
+    const files = readdirSync(TASKS_DIR)
+      .filter((f: string) => f.endsWith(".md"))
+      .sort();
     if (files.length === 0) {
       console.log(chalk.gray("  No task files yet."));
     } else {
@@ -176,7 +208,11 @@ function showStatus() {
   // Stop signal pending?
   if (existsSync(STOP_FILE)) {
     console.log("");
-    console.log(chalk.yellow.bold("  ⚠ Stop signal is pending — pipeline will halt at next check."));
+    console.log(
+      chalk.yellow.bold(
+        "  ⚠ Stop signal is pending — pipeline will halt at next check.",
+      ),
+    );
   }
 
   console.log("");
@@ -276,7 +312,10 @@ function runAgent(
 ): Promise<{ success: boolean; output: string }> {
   mkdirSync(LOGS_DIR, { recursive: true });
   const logFile = resolve(LOGS_DIR, `${iteration}-${taskName}.log`);
-  writeFileSync(logFile, `--- ${taskName} (iteration ${iteration}) started at ${new Date().toISOString()} ---\n`);
+  writeFileSync(
+    logFile,
+    `--- ${taskName} (iteration ${iteration}) started at ${new Date().toISOString()} ---\n`,
+  );
 
   return new Promise((promResolve) => {
     const args = [
@@ -314,7 +353,10 @@ function runAgent(
     });
 
     proc.on("close", (code) => {
-      appendFileSync(logFile, `\n--- exited with code ${code} at ${new Date().toISOString()} ---\n`);
+      appendFileSync(
+        logFile,
+        `\n--- exited with code ${code} at ${new Date().toISOString()} ---\n`,
+      );
       const idx = activeProcesses.indexOf(proc);
       if (idx !== -1) activeProcesses.splice(idx, 1);
       promResolve({ success: code === 0, output });
@@ -353,7 +395,10 @@ async function runIteration(
   pipeline: PipelineDef,
   pipelineName: string,
   iteration: number,
-): Promise<{ success: boolean; taskResults: Record<string, "pending" | "running" | "done" | "failed"> }> {
+): Promise<{
+  success: boolean;
+  taskResults: Record<string, "pending" | "running" | "done" | "failed">;
+}> {
   const tasks: RunningTask[] = pipeline.tasks.map((name) => ({
     name,
     status: "pending" as TaskStatus,
@@ -464,7 +509,8 @@ async function runIteration(
   refresh();
 
   const allDone = tasks.every((t) => t.status === "done");
-  const taskResults: Record<string, "pending" | "running" | "done" | "failed"> = {};
+  const taskResults: Record<string, "pending" | "running" | "done" | "failed"> =
+    {};
   for (const t of tasks) {
     if (t.status === "waiting" || t.status === "stopped") {
       taskResults[t.name] = "pending";
@@ -499,7 +545,7 @@ async function main() {
 
   if (!pipeline) {
     console.error(
-      chalk.red(`Pipeline "${pipelineName}" not found in swarm.yaml`),
+      chalk.red(`Pipeline "${pipelineName}" not found in swarm/swarm.yaml`),
     );
     console.error(
       chalk.gray(`Available: ${Object.keys(config.pipelines).join(", ")}`),
