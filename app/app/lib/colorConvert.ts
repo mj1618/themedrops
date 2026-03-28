@@ -110,6 +110,29 @@ export type ColorFamily =
   | "Pink"
   | "Neutral";
 
+/** WCAG 2.1 contrast ratio between two hex colors (e.g. 4.5) */
+export function contrastRatio(hex1: string, hex2: string): number {
+  const l1 = relativeLuminance(hex1);
+  const l2 = relativeLuminance(hex2);
+  const lighter = Math.max(l1, l2);
+  const darker = Math.min(l1, l2);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+/** WCAG level for normal text (AA >= 4.5, AAA >= 7) */
+export function wcagLevel(ratio: number): "AAA" | "AA" | "Fail" {
+  if (ratio >= 7) return "AAA";
+  if (ratio >= 4.5) return "AA";
+  return "Fail";
+}
+
+/** WCAG level for large text (AA >= 3, AAA >= 4.5) */
+export function wcagLevelLargeText(ratio: number): "AAA" | "AA" | "Fail" {
+  if (ratio >= 4.5) return "AAA";
+  if (ratio >= 3) return "AA";
+  return "Fail";
+}
+
 /** Map a hex color to a broad color family based on hue and saturation. */
 export function hexToColorFamily(hex: string): ColorFamily {
   const { r, g, b } = hexToRgb(hex);
