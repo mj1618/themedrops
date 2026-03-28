@@ -1,4 +1,34 @@
-# Gallery Filters (DONE)
+# Gallery Filters (REVIEWED)
+
+## Review Notes
+
+**Reviewed by:** Claude (automated review)
+**Verdict:** Mostly correct, one missing feature fixed.
+
+### Issues Found & Fixed
+
+1. **Description search not implemented (FIXED)** — The "Search Enhancement" requirement asked for search to also cover theme descriptions, but only the `name` field was indexed. Added a second Convex search index (`search_themes_description`) on the `description` field and updated the `search` query to run both indexes in parallel, merging and deduplicating results with name matches prioritized.
+
+### Verified as Correct
+
+- Filter panel UI: chip-based filters with dropdown popovers, dismissable active filters, "Clear all" button — all working
+- Tone filter: WCAG 2.0 relative luminance formula correctly implemented, threshold at 0.5 per spec
+- Color family filter: hue-based classification covers full 360° range with saturation check for neutrals
+- Font family filter: dynamically derived from loaded themes, correctly hidden when no themes are loaded
+- Has description filter: properly checks for non-empty trimmed description
+- Most Forked sort: `forkCount` field added, `by_forks` index created, fork mutation increments count with `?? 0` fallback for pre-existing data
+- Filters reset on sort tab change: confirmed in `handleSortChange`
+- Filter count display: shows "Showing X of Y themes" when filters are active
+- Seed data: all seed themes include `forkCount: 0`
+- TypeScript compiles cleanly with no errors
+- Browser test: UI renders correctly with all filter chips and sort tabs visible
+
+### Notes
+
+- `forkCount` is `v.optional(v.number())` in the schema to handle pre-existing themes, but new themes always get `forkCount: 0` — this is fine
+- The `description` search index handles `undefined` descriptions gracefully (Convex skips documents without the field)
+
+---
 
 ## Completion Notes
 

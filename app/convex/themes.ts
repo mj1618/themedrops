@@ -137,12 +137,33 @@ export const search = query({
   handler: async (ctx, args) => {
     if (!args.query.trim()) return [];
     const limit = args.limit ?? 50;
-    const results = await ctx.db
-      .query("themes")
-      .withSearchIndex("search_themes", (q) =>
-        q.search("name", args.query).eq("isPublic", true)
-      )
-      .take(limit);
+
+    // Search both name and description indexes, then merge & dedupe
+    const [byName, byDescription] = await Promise.all([
+      ctx.db
+        .query("themes")
+        .withSearchIndex("search_themes", (q) =>
+          q.search("name", args.query).eq("isPublic", true)
+        )
+        .take(limit),
+      ctx.db
+        .query("themes")
+        .withSearchIndex("search_themes_description", (q) =>
+          q.search("description", args.query).eq("isPublic", true)
+        )
+        .take(limit),
+    ]);
+
+    // Dedupe: name matches first, then description-only matches
+    const seen = new Set(byName.map((t) => t._id));
+    const merged = [...byName];
+    for (const t of byDescription) {
+      if (!seen.has(t._id)) {
+        seen.add(t._id);
+        merged.push(t);
+      }
+    }
+    const results = merged.slice(0, limit);
 
     const withAuthors = await Promise.all(
       results.map(async (theme) => {

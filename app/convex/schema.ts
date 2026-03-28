@@ -49,6 +49,10 @@ export default defineSchema({
     .searchIndex("search_themes", {
       searchField: "name",
       filterFields: ["isPublic"],
+    })
+    .searchIndex("search_themes_description", {
+      searchField: "description",
+      filterFields: ["isPublic"],
     }),
 
   stars: defineTable({
