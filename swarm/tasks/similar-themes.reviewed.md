@@ -8,6 +8,21 @@ Implemented the Similar Themes feature:
 - Created `app/app/components/SimilarThemes.tsx` — horizontal scrollable row of compact theme preview cards with scroll indicators
 - Integrated into `app/app/routes/theme/$slug.tsx` below the contrast checker section
 
+## Review
+
+Reviewed by: Claude (automated review)
+
+### Issues found and fixed
+- **Removed dead file `app/app/lib/colorDistance.ts`**: This file was created but never imported anywhere. The Convex query in `themes.ts` correctly has its own inline copy of the color distance functions (necessary because Convex backend can't import from the app lib). Removed the unused file.
+
+### Code quality observations (no action needed)
+- The `getSimilarThemes` query correctly excludes the current theme and its direct forks
+- The candidate pool strategy (top-starred + recent, deduplicated) is sound for the Convex constraint
+- The weighted Euclidean RGB distance formula is a reasonable approximation for perceptual similarity
+- Loading skeleton and <2 result hiding behavior work as specified
+- Horizontal scroll with fade-gradient arrow buttons is well implemented
+- TypeScript compiles cleanly after the fix
+
 ## Summary
 
 Add a "Similar Themes" section to the theme detail page that recommends themes with visually similar color palettes. This improves theme discovery and keeps users browsing.
