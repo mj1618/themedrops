@@ -51,6 +51,7 @@ export function ThemeForm({
 }) {
   const [values, setValues] = useState(initialValues);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const setColor = (key: keyof ThemeFormValues["colors"], value: string) => {
     setValues((v) => ({ ...v, colors: { ...v.colors, [key]: value } }));
@@ -63,8 +64,11 @@ export function ThemeForm({
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError("");
     try {
       await onSubmit(values);
+    } catch (err: any) {
+      setError(err?.message || "Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -72,6 +76,11 @@ export function ThemeForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
+      {error && (
+        <div className="p-3 text-sm rounded-lg bg-red-500/10 text-red-400 border border-red-500/20">
+          {error}
+        </div>
+      )}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Left: Form */}
         <div className="space-y-6">

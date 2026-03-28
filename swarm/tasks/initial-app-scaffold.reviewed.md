@@ -124,3 +124,23 @@ Completed on 2026-03-28. Built the full MVP scaffold:
 - **Dark default theme**: Polished dark design with purple accents
 
 The app renders correctly on both server and client. Convex provider gracefully handles missing config (placeholder URL) for development without a connected backend.
+
+## Review Notes
+
+Reviewed on 2026-03-28. The scaffold is comprehensive and well-structured. Found and fixed the following issues:
+
+### Build/Config Fixes
+- **Replaced vinxi with vite** — TanStack Start v1.167 uses Vite 7+ directly; vinxi 0.5 bundles Vite 6 causing `id.endsWith is not a function` build error. Updated scripts from `vinxi dev/build/start` to `vite dev/build/preview`.
+- **Fixed `by_creation` index** — Empty field array `[]` is invalid in Convex; changed to `["_creationTime"]`.
+- **Fixed auth HTTP routes** — Used `auth.addHttpRoutes(http)` instead of manually calling non-existent `auth.openIdConfiguration`, `auth.authorize`, `auth.token`, `auth.revoke`, and `auth.handleRedirectCallback` properties.
+- **Fixed vinxi type reference** — Changed `/// <reference types="vinxi/types/client" />` to `/// <reference types="vite/client" />` in `client.tsx`.
+- **Added CSS module type declaration** — Created `vite-env.d.ts` for `*.css?url` imports.
+- **Added `@types/node`** — Required for `process.env` references in `ConvexAuthProvider.tsx` and `auth.config.ts`.
+- **Removed deprecated `ScrollRestoration` component** — Router already configures `scrollRestoration: true`.
+
+### Bug Fixes
+- **Comment author initial crash** — `displayName[0].toUpperCase()` would crash on empty string in both `theme/$slug.tsx` and `index.tsx`. Added fallback: `(displayName || "?")[0]`.
+- **Slug collision on theme update** — Update mutation regenerated slug from name without checking uniqueness. Added duplicate slug check with timestamp suffix fallback.
+- **ThemeForm silent error swallowing** — `try/catch` in `handleSubmit` caught errors without displaying them. Added error state and error banner UI.
+- **Create page shows form while auth loading** — Added loading skeleton when `user === undefined` to prevent showing the form before auth state resolves.
+- **Edit page navigates to stale slug** — After updating a theme name (which changes its slug), the edit page navigated to the old slug. Changed to navigate home instead.

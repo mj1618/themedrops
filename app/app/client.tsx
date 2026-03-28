@@ -1,4 +1,4 @@
-/// <reference types="vinxi/types/client" />
+/// <reference types="vite/client" />
 import { StrictMode, startTransition } from "react";
 import { hydrateRoot } from "react-dom/client";
 import { StartClient } from "@tanstack/react-start/client";

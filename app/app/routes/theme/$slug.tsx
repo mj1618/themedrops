@@ -376,7 +376,7 @@ function ThemeDetailPage() {
           {comments?.map((comment) => (
             <div key={comment._id} className="flex items-start gap-3 p-3 rounded-xl bg-td-secondary/50 border border-white/5">
               <div className="w-7 h-7 rounded-full bg-td-primary/20 flex items-center justify-center text-td-primary text-xs font-bold shrink-0">
-                {comment.author.displayName[0].toUpperCase()}
+                {(comment.author.displayName || "?")[0].toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm">

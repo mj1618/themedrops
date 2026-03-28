@@ -15,6 +15,14 @@ function CreateThemePage() {
   const createTheme = useMutation(api.themes.create);
   const [showAuth, setShowAuth] = useState(false);
 
+  if (user === undefined) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-16">
+        <div className="h-64 rounded-2xl bg-td-secondary animate-pulse" />
+      </div>
+    );
+  }
+
   if (user === null) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-16 text-center space-y-4">

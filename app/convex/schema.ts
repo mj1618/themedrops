@@ -43,7 +43,7 @@ export default defineSchema({
     .index("by_slug", ["slug"])
     .index("by_author", ["authorId"])
     .index("by_stars", ["starCount"])
-    .index("by_creation", [])
+    .index("by_creation", ["_creationTime"])
     .searchIndex("search_themes", {
       searchField: "name",
       filterFields: ["isPublic"],

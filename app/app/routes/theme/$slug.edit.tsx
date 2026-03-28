@@ -49,7 +49,8 @@ function EditThemePage() {
             fonts: values.fonts,
             isPublic: values.isPublic,
           });
-          navigate({ to: "/theme/$slug", params: { slug } });
+          // Navigate home since slug may have changed with name update
+          navigate({ to: "/" });
         }}
         submitLabel="Save Changes"
       />

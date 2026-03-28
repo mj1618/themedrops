@@ -229,7 +229,15 @@ export const update = mutation({
     const updates: Record<string, unknown> = {};
     if (args.name !== undefined) {
       updates.name = args.name;
-      updates.slug = slugify(args.name);
+      let newSlug = slugify(args.name);
+      const existing = await ctx.db
+        .query("themes")
+        .withIndex("by_slug", (q) => q.eq("slug", newSlug))
+        .first();
+      if (existing && existing._id !== args.id) {
+        newSlug = `${newSlug}-${Date.now().toString(36)}`;
+      }
+      updates.slug = newSlug;
     }
     if (args.description !== undefined) updates.description = args.description;
     if (args.colors !== undefined) updates.colors = args.colors;

@@ -112,41 +112,7 @@ function corsHeaders() {
 
 const http = httpRouter();
 
-http.route({
-  path: "/.well-known/openid-configuration",
-  method: "GET",
-  handler: auth.openIdConfiguration,
-});
-
-http.route({
-  path: "/oauth/authorize",
-  method: "GET",
-  handler: auth.authorize,
-});
-
-http.route({
-  path: "/oauth/token",
-  method: "POST",
-  handler: auth.token,
-});
-
-http.route({
-  path: "/oauth/revoke",
-  method: "POST",
-  handler: auth.revoke,
-});
-
-http.route({
-  pathPrefix: "/api/auth/",
-  method: "GET",
-  handler: auth.handleRedirectCallback,
-});
-
-http.route({
-  pathPrefix: "/api/auth/",
-  method: "POST",
-  handler: auth.handleRedirectCallback,
-});
+auth.addHttpRoutes(http);
 
 http.route({
   path: "/api/themes",
