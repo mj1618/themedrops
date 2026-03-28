@@ -406,6 +406,117 @@ export const toggleStar = mutation({
   },
 });
 
+function hexToRgb(hex: string): [number, number, number] {
+  const h = hex.replace("#", "");
+  return [
+    parseInt(h.slice(0, 2), 16),
+    parseInt(h.slice(2, 4), 16),
+    parseInt(h.slice(4, 6), 16),
+  ];
+}
+
+function colorDist(hex1: string, hex2: string): number {
+  const [r1, g1, b1] = hexToRgb(hex1);
+  const [r2, g2, b2] = hexToRgb(hex2);
+  const rMean = (r1 + r2) / 2;
+  const dr = r1 - r2;
+  const dg = g1 - g2;
+  const db = b1 - b2;
+  return Math.sqrt(
+    (2 + rMean / 256) * dr * dr +
+      4 * dg * dg +
+      (2 + (255 - rMean) / 256) * db * db
+  );
+}
+
+const COLOR_KEYS = [
+  "background",
+  "foreground",
+  "primary",
+  "secondary",
+  "accent",
+  "muted",
+] as const;
+
+function themeSimilarity(
+  a: Record<string, string>,
+  b: Record<string, string>
+): number {
+  let total = 0;
+  for (const key of COLOR_KEYS) {
+    total += colorDist(a[key], b[key]);
+  }
+  return total / COLOR_KEYS.length;
+}
+
+export const getSimilarThemes = query({
+  args: {
+    themeId: v.id("themes"),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = args.limit ?? 6;
+    const theme = await ctx.db.get(args.themeId);
+    if (!theme) return [];
+
+    // Build candidate pool: top-starred + recent public themes
+    const [byStars, byRecent] = await Promise.all([
+      ctx.db
+        .query("themes")
+        .withIndex("by_stars")
+        .order("desc")
+        .filter((q) => q.eq(q.field("isPublic"), true))
+        .take(50),
+      ctx.db
+        .query("themes")
+        .withIndex("by_creation")
+        .order("desc")
+        .filter((q) => q.eq(q.field("isPublic"), true))
+        .take(50),
+    ]);
+
+    // Dedupe and exclude current theme + direct forks of it
+    const seen = new Set<string>();
+    const candidates = [];
+    for (const t of [...byStars, ...byRecent]) {
+      if (seen.has(t._id) || t._id === args.themeId || t.forkOf === args.themeId) continue;
+      seen.add(t._id);
+      candidates.push(t);
+    }
+
+    // Score and sort by similarity
+    const scored = candidates.map((t) => ({
+      theme: t,
+      score: themeSimilarity(theme.colors, t.colors),
+    }));
+    scored.sort((a, b) => a.score - b.score);
+
+    const top = scored.slice(0, limit);
+
+    // Attach author info
+    const results = await Promise.all(
+      top.map(async ({ theme: t }) => {
+        const author = await ctx.db.get(t.authorId);
+        return {
+          _id: t._id,
+          name: t.name,
+          slug: t.slug,
+          colors: t.colors,
+          starCount: t.starCount,
+          author: author
+            ? {
+                username: author.username ?? "unknown",
+                displayName: author.displayName ?? author.username ?? "Unknown",
+              }
+            : { username: "unknown", displayName: "Unknown" },
+        };
+      })
+    );
+
+    return results;
+  },
+});
+
 export const listPublicForApi = query({
   args: {},
   handler: async (ctx) => {

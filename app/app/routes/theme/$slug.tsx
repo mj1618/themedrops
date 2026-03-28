@@ -6,6 +6,8 @@ import { useTheme } from "../../lib/ThemeProvider";
 import { AuthModal } from "../../components/AuthModal";
 import { useToast } from "../../components/Toast";
 import { ThemeExport } from "../../components/ThemeExport";
+import { ContrastChecker } from "../../components/ContrastChecker";
+import { SimilarThemes } from "../../components/SimilarThemes";
 import { convertColors } from "../../lib/colorConvert";
 
 export const Route = createFileRoute("/theme/$slug")({
@@ -368,6 +370,12 @@ function ThemeDetailPage() {
         colors={theme.colors}
         fonts={theme.fonts}
       />
+
+      {/* Accessibility Contrast Checker */}
+      <ContrastChecker colors={theme.colors} />
+
+      {/* Similar Themes */}
+      <SimilarThemes themeId={theme._id} />
 
       {/* API Documentation */}
       <section className="space-y-3">
