@@ -33,6 +33,12 @@ export function Header() {
                   Create
                 </Link>
               )}
+              <Link
+                to="/api"
+                className="text-sm text-td-muted hover:text-td-foreground transition-colors"
+              >
+                API
+              </Link>
             </nav>
           </div>
 
