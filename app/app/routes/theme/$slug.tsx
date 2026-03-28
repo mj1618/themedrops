@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, usePaginatedQuery } from "convex/react";
+import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../convex/_generated/api";
 import { useState, useEffect, useRef, type FormEvent } from "react";
 import { useTheme } from "../../lib/ThemeProvider";
@@ -13,6 +14,38 @@ import { AddToCollectionModal } from "../../components/AddToCollectionModal";
 import { convertColors } from "../../lib/colorConvert";
 
 export const Route = createFileRoute("/theme/$slug")({
+  loader: async ({ params }) => {
+    const convexUrl = (import.meta as any).env?.VITE_CONVEX_URL;
+    if (!convexUrl) return { theme: null };
+    const client = new ConvexHttpClient(convexUrl);
+    const theme = await client.query(api.themes.getBySlug, { slug: params.slug });
+    return { theme };
+  },
+  head: ({ loaderData }) => {
+    const theme = loaderData?.theme;
+    if (!theme) return {};
+    const title = `${theme.name} on themedrops`;
+    const description =
+      theme.description ||
+      `A color theme featuring ${theme.colors.primary}, ${theme.colors.secondary}, ${theme.colors.accent} colors`;
+    const convexUrl = (import.meta as any).env?.VITE_CONVEX_URL ?? "";
+    const ogImageUrl = convexUrl ? `${convexUrl.replace(".cloud", ".site")}/api/og/${theme.slug}` : "";
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:type", content: "website" },
+        { property: "og:site_name", content: "themedrops" },
+        ...(ogImageUrl ? [{ property: "og:image", content: ogImageUrl }] : []),
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: title },
+        { name: "twitter:description", content: description },
+        ...(ogImageUrl ? [{ name: "twitter:image", content: ogImageUrl }] : []),
+      ],
+    };
+  },
   component: ThemeDetailPage,
 });
 
@@ -47,6 +80,9 @@ function ThemeDetailPage() {
   const [showApi, setShowApi] = useState(false);
   const [showCollection, setShowCollection] = useState(false);
 
+  const [showShareMenu, setShowShareMenu] = useState(false);
+  const shareMenuRef = useRef<HTMLDivElement>(null);
+
   const [starLoading, setStarLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [forkLoading, setForkLoading] = useState(false);
@@ -60,6 +96,17 @@ function ThemeDetailPage() {
       forkInputRef.current?.focus();
     }
   }, [showFork]);
+
+  useEffect(() => {
+    if (!showShareMenu) return;
+    const handleClick = (e: MouseEvent) => {
+      if (shareMenuRef.current && !shareMenuRef.current.contains(e.target as Node)) {
+        setShowShareMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [showShareMenu]);
 
   if (theme === undefined) {
     return (
@@ -285,18 +332,79 @@ function ThemeDetailPage() {
               Fork ({theme.forkCount})
             </button>
 
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(`${siteUrl}/theme/${theme.slug}`);
-                toast("Link copied to clipboard", "success");
-              }}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-td-secondary text-td-foreground border border-white/10 hover:border-white/20 transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-              </svg>
-              Share
-            </button>
+            <div className="relative" ref={shareMenuRef}>
+              <button
+                onClick={() => setShowShareMenu(!showShareMenu)}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-td-secondary text-td-foreground border border-white/10 hover:border-white/20 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                </svg>
+                Share
+                <svg className={`w-3 h-3 transition-transform ${showShareMenu ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {showShareMenu && (
+                <div className="absolute top-full left-0 mt-2 w-56 rounded-xl bg-td-secondary border border-white/10 shadow-xl z-50 overflow-hidden">
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${siteUrl}/theme/${theme.slug}`);
+                      toast("Link copied to clipboard", "success");
+                      setShowShareMenu(false);
+                    }}
+                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-td-foreground hover:bg-white/5 transition-colors"
+                  >
+                    <svg className="w-4 h-4 text-td-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                    </svg>
+                    Copy link
+                  </button>
+                  <button
+                    onClick={() => {
+                      const text = encodeURIComponent(`${theme.name} on themedrops`);
+                      const url = encodeURIComponent(`${siteUrl}/theme/${theme.slug}`);
+                      window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, "_blank", "noopener");
+                      setShowShareMenu(false);
+                    }}
+                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-td-foreground hover:bg-white/5 transition-colors"
+                  >
+                    <svg className="w-4 h-4 text-td-muted" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                    </svg>
+                    Share on X
+                  </button>
+                  <button
+                    onClick={() => {
+                      const title = encodeURIComponent(theme.name);
+                      const url = encodeURIComponent(`${siteUrl}/theme/${theme.slug}`);
+                      window.open(`https://www.reddit.com/submit?title=${title}&url=${url}`, "_blank", "noopener");
+                      setShowShareMenu(false);
+                    }}
+                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-td-foreground hover:bg-white/5 transition-colors"
+                  >
+                    <svg className="w-4 h-4 text-td-muted" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z" />
+                    </svg>
+                    Share on Reddit
+                  </button>
+                  <button
+                    onClick={() => {
+                      const embedCode = `<iframe src="${siteUrl}/theme/${theme.slug}" width="400" height="300" frameborder="0"></iframe>`;
+                      navigator.clipboard.writeText(embedCode);
+                      toast("Embed code copied to clipboard", "success");
+                      setShowShareMenu(false);
+                    }}
+                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-td-foreground hover:bg-white/5 transition-colors border-t border-white/5"
+                  >
+                    <svg className="w-4 h-4 text-td-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                    </svg>
+                    Copy embed code
+                  </button>
+                </div>
+              )}
+            </div>
 
             <button
               onClick={() => {

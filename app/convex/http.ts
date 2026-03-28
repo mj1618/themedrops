@@ -200,4 +200,75 @@ http.route({
   }),
 });
 
+// OG image endpoint — returns an SVG showing the theme's color palette
+http.route({
+  pathPrefix: "/api/og/",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    const url = new URL(request.url);
+    const slug = url.pathname.replace("/api/og/", "").replace(/\/$/, "");
+
+    if (!slug) {
+      return new Response("Slug required", { status: 400 });
+    }
+
+    const theme = await ctx.runQuery(api.themes.getBySlug, { slug });
+
+    if (!theme) {
+      return new Response("Theme not found", { status: 404 });
+    }
+
+    const colors = theme.colors;
+    const colorEntries = Object.entries(colors) as [string, string][];
+    const authorName = theme.author?.displayName ?? "Unknown";
+
+    const swatchWidth = 160;
+    const swatchGap = 20;
+    const totalSwatchWidth = colorEntries.length * swatchWidth + (colorEntries.length - 1) * swatchGap;
+    const swatchStartX = (1200 - totalSwatchWidth) / 2;
+
+    const swatches = colorEntries
+      .map(([name, color], i) => {
+        const x = swatchStartX + i * (swatchWidth + swatchGap);
+        return `
+          <rect x="${x}" y="260" width="${swatchWidth}" height="${swatchWidth}" rx="16" fill="${color}" />
+          <text x="${x + swatchWidth / 2}" y="${260 + swatchWidth + 30}" text-anchor="middle" fill="#999" font-size="18" font-family="system-ui, sans-serif">${name}</text>
+          <text x="${x + swatchWidth / 2}" y="${260 + swatchWidth + 55}" text-anchor="middle" fill="#666" font-size="14" font-family="monospace">${color}</text>
+        `;
+      })
+      .join("");
+
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="${colors.background}" />
+  <rect width="1200" height="630" fill="rgba(0,0,0,0.3)" />
+
+  <text x="600" y="100" text-anchor="middle" fill="${colors.foreground}" font-size="48" font-weight="bold" font-family="system-ui, sans-serif">${escapeXml(theme.name)}</text>
+  <text x="600" y="150" text-anchor="middle" fill="${colors.muted}" font-size="22" font-family="system-ui, sans-serif">by ${escapeXml(authorName)}</text>
+
+  <text x="600" y="200" text-anchor="middle" fill="${colors.accent}" font-size="18" font-family="system-ui, sans-serif">${theme.starCount} ★</text>
+
+  ${swatches}
+
+  <text x="600" y="600" text-anchor="middle" fill="${colors.muted}" font-size="20" font-family="system-ui, sans-serif" opacity="0.7">themedrops</text>
+</svg>`;
+
+    return new Response(svg, {
+      headers: {
+        "Content-Type": "image/svg+xml",
+        "Cache-Control": "public, max-age=3600",
+        ...corsHeaders(),
+      },
+    });
+  }),
+});
+
+function escapeXml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
 export default http;

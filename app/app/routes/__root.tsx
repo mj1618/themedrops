@@ -16,12 +16,19 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "themedrops — Share & Discover Themes" },
+      { title: "themedrops — discover and share color themes" },
       {
         name: "description",
         content:
-          "A community gallery for color and typography themes. Create, fork, star, and use themes via API.",
+          "Browse, create, and share beautiful color themes for your apps, VS Code, and more.",
       },
+      { property: "og:title", content: "themedrops — discover and share color themes" },
+      { property: "og:description", content: "Browse, create, and share beautiful color themes for your apps, VS Code, and more." },
+      { property: "og:type", content: "website" },
+      { property: "og:site_name", content: "themedrops" },
+      { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: "themedrops — discover and share color themes" },
+      { name: "twitter:description", content: "Browse, create, and share beautiful color themes for your apps, VS Code, and more." },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
