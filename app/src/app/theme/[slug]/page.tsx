@@ -3,10 +3,195 @@
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import AuthControls from "../../components/AuthControls";
 import CreateThemeLink from "../../components/CreateThemeLink";
+
+type ColorFormat = "hex" | "hsl" | "rgb" | "oklch";
+
+function timeAgo(timestamp: number): string {
+  const seconds = Math.floor((Date.now() - timestamp) / 1000);
+  if (seconds < 60) return "just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days <= 30) return `${days}d ago`;
+  const date = new Date(timestamp);
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+function parseHex(hex: string): [number, number, number] {
+  const cleaned = hex.replace(/^#/, "");
+  return [
+    parseInt(cleaned.slice(0, 2), 16),
+    parseInt(cleaned.slice(2, 4), 16),
+    parseInt(cleaned.slice(4, 6), 16),
+  ];
+}
+
+function hexToRgb(hex: string): string {
+  const [r, g, b] = parseHex(hex);
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+function hexToHsl(hex: string): string {
+  const [r, g, b] = parseHex(hex);
+  const rn = r / 255, gn = g / 255, bn = b / 255;
+  const max = Math.max(rn, gn, bn), min = Math.min(rn, gn, bn);
+  const l = (max + min) / 2;
+  let h = 0, s = 0;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    if (max === rn) h = ((gn - bn) / d + (gn < bn ? 6 : 0)) / 6;
+    else if (max === gn) h = ((bn - rn) / d + 2) / 6;
+    else h = ((rn - gn) / d + 4) / 6;
+  }
+  return `hsl(${Math.round(h * 360)}, ${Math.round(s * 100)}%, ${Math.round(l * 100)}%)`;
+}
+
+function hexToOklch(hex: string): string {
+  const [r, g, b] = parseHex(hex);
+  const lin = (c: number) => c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  const lr = lin(r / 255), lg = lin(g / 255), lb = lin(b / 255);
+  const l_ = 0.4122214708 * lr + 0.5363325363 * lg + 0.0514459929 * lb;
+  const m_ = 0.2119034982 * lr + 0.6806995451 * lg + 0.1073969566 * lb;
+  const s_ = 0.0883024619 * lr + 0.2817188376 * lg + 0.6299787005 * lb;
+  const lc = Math.cbrt(l_), mc = Math.cbrt(m_), sc = Math.cbrt(s_);
+  const L = 0.2104542553 * lc + 0.7936177850 * mc - 0.0040720468 * sc;
+  const a = 1.9779984951 * lc - 2.4285922050 * mc + 0.4505937099 * sc;
+  const bk = 0.0259040371 * lc + 0.7827717662 * mc - 0.8086757660 * sc;
+  const C = Math.sqrt(a * a + bk * bk);
+  let h = (Math.atan2(bk, a) * 180) / Math.PI;
+  if (h < 0) h += 360;
+  return `oklch(${(L * 100).toFixed(1)}% ${C.toFixed(4)} ${h.toFixed(1)})`;
+}
+
+function convertColor(hex: string, format: ColorFormat): string {
+  if (format === "hex") return hex;
+  if (format === "rgb") return hexToRgb(hex);
+  if (format === "hsl") return hexToHsl(hex);
+  if (format === "oklch") return hexToOklch(hex);
+  return hex;
+}
+
+function convertColors(colors: Record<string, string | undefined>, format: ColorFormat): Record<string, string | undefined> {
+  if (format === "hex") return colors;
+  const result: Record<string, string | undefined> = {};
+  for (const [key, value] of Object.entries(colors)) {
+    result[key] = value && /^#[0-9a-fA-F]{6}$/.test(value) ? convertColor(value, format) : value;
+  }
+  return result;
+}
+
+function ApiSection({ slug, colors, fonts }: { slug: string; colors: Record<string, string | undefined>; fonts?: { sans?: string; serif?: string; mono?: string } | null }) {
+  const [format, setFormat] = useState<ColorFormat>("hex");
+  const [copiedUrl, setCopiedUrl] = useState(false);
+  const [copiedJson, setCopiedJson] = useState(false);
+
+  const endpoint = `/api/themes/${slug}`;
+
+  const exampleResponse = useMemo(() => {
+    const converted = convertColors(colors, format);
+    const obj: Record<string, unknown> = {
+      name: "...",
+      slug,
+      colors: converted,
+    };
+    if (fonts && (fonts.sans || fonts.serif || fonts.mono)) {
+      obj.fonts = fonts;
+    }
+    return JSON.stringify(obj, null, 2);
+  }, [slug, colors, fonts, format]);
+
+  const formats: ColorFormat[] = ["hex", "hsl", "rgb", "oklch"];
+
+  return (
+    <details className="group">
+      <summary className="cursor-pointer text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors select-none">
+        <span className="ml-1">View API</span>
+      </summary>
+      <div className="mt-4 space-y-4">
+        {/* Endpoint */}
+        <div>
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Endpoint</p>
+          <div className="flex items-center gap-2">
+            <code className="flex-1 text-sm font-mono bg-gray-100 px-3 py-2 rounded-lg text-gray-800 break-all">
+              GET {endpoint}
+            </code>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(window.location.origin + endpoint);
+                setCopiedUrl(true);
+                setTimeout(() => setCopiedUrl(false), 2000);
+              }}
+              className="shrink-0 px-3 py-2 text-xs font-medium rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition-colors"
+            >
+              {copiedUrl ? "Copied!" : "Copy URL"}
+            </button>
+          </div>
+        </div>
+
+        {/* Query params */}
+        <div>
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Query Parameters</p>
+          <div className="bg-gray-100 rounded-lg px-3 py-2 text-sm">
+            <span className="font-mono font-medium text-gray-800">?format=</span>
+            <span className="text-gray-600"> — Color format. One of: </span>
+            <span className="font-mono text-gray-700">hex</span>
+            <span className="text-gray-400"> (default)</span>
+            <span className="text-gray-600">, </span>
+            <span className="font-mono text-gray-700">hsl</span>
+            <span className="text-gray-600">, </span>
+            <span className="font-mono text-gray-700">rgb</span>
+            <span className="text-gray-600">, </span>
+            <span className="font-mono text-gray-700">oklch</span>
+          </div>
+        </div>
+
+        {/* Format selector + example */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Example Response</p>
+            <div className="flex gap-1">
+              {formats.map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setFormat(f)}
+                  className={`px-2.5 py-1 text-xs font-mono rounded-md transition-colors ${
+                    format === f
+                      ? "bg-gray-900 text-white"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="relative">
+            <pre className="bg-gray-900 text-gray-100 rounded-lg px-4 py-3 text-sm font-mono overflow-x-auto leading-relaxed">
+              {exampleResponse}
+            </pre>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(exampleResponse);
+                setCopiedJson(true);
+                setTimeout(() => setCopiedJson(false), 2000);
+              }}
+              className="absolute top-2 right-2 px-2 py-1 text-xs font-medium rounded bg-gray-700 text-gray-300 hover:bg-gray-600 transition-colors"
+            >
+              {copiedJson ? "Copied!" : "Copy"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </details>
+  );
+}
 
 const COLOR_LABELS: { key: string; label: string }[] = [
   { key: "background", label: "Background" },
@@ -147,6 +332,10 @@ export default function ThemeDetailPage() {
   // Fork
   const forkTheme = useMutation(api.themes.fork);
   const [forking, setForking] = useState(false);
+  const forkCount = useQuery(
+    api.themes.countForks,
+    theme ? { themeId: theme._id } : "skip"
+  );
 
   // Forked-from theme info (for link)
   const forkedFrom = useQuery(
@@ -445,21 +634,26 @@ export default function ThemeDetailPage() {
 
               {/* Star button */}
               {!editing && (
-                <button
-                  onClick={handleToggleStar}
-                  disabled={!currentUser}
-                  className={`flex items-center gap-1.5 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
-                    isStarred
-                      ? "bg-yellow-50 border-yellow-300 text-yellow-700"
-                      : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
-                  } ${!currentUser ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
-                  title={!currentUser ? "Sign in to star themes" : undefined}
-                >
-                  <span className="text-lg">
-                    {isStarred ? "\u2605" : "\u2606"}
-                  </span>
-                  <span>{theme.starCount}</span>
-                </button>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={handleToggleStar}
+                    disabled={!currentUser}
+                    className={`flex items-center gap-1.5 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                      isStarred
+                        ? "bg-yellow-50 border-yellow-300 text-yellow-700"
+                        : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                    } ${!currentUser ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                    title={!currentUser ? "Sign in to star" : undefined}
+                  >
+                    <span className="text-lg">
+                      {isStarred ? "\u2605" : "\u2606"}
+                    </span>
+                    <span>{theme.starCount}</span>
+                  </button>
+                  {!currentUser && (
+                    <span className="text-xs text-gray-400">Sign in to star</span>
+                  )}
+                </div>
               )}
 
               {/* Share button */}
@@ -557,9 +751,7 @@ export default function ThemeDetailPage() {
           )}
 
           {!editing && (
-            <p className="text-xs text-gray-400 font-mono bg-gray-100 inline-block px-2 py-1 rounded">
-              API: /api/themes/{theme.slug}
-            </p>
+            <ApiSection slug={theme.slug} colors={theme.colors as Record<string, string | undefined>} fonts={theme.fonts} />
           )}
         </div>
 
@@ -695,15 +887,27 @@ export default function ThemeDetailPage() {
         )}
 
         {/* Fork button */}
-        {currentUser && !editing && (
-          <div>
-            <button
-              onClick={handleFork}
-              disabled={forking}
-              className="px-5 py-2.5 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-700 transition-colors disabled:opacity-50"
-            >
-              {forking ? "Forking..." : "Fork this theme"}
-            </button>
+        {!editing && (
+          <div className="flex items-center gap-3">
+            {currentUser ? (
+              <button
+                onClick={handleFork}
+                disabled={forking}
+                className="px-5 py-2.5 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-700 transition-colors disabled:opacity-50"
+              >
+                {forking ? "Forking..." : `Fork this theme${forkCount ? ` (${forkCount})` : ""}`}
+              </button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <button
+                  disabled
+                  className="px-5 py-2.5 rounded-lg bg-gray-900 text-white text-sm font-medium opacity-50 cursor-not-allowed"
+                >
+                  {`Fork this theme${forkCount ? ` (${forkCount})` : ""}`}
+                </button>
+                <span className="text-xs text-gray-400">Sign in to fork</span>
+              </div>
+            )}
           </div>
         )}
 
@@ -750,6 +954,9 @@ export default function ThemeDetailPage() {
                             comment.author?.username ??
                             "Unknown"}
                         </span>
+                        <span className="text-xs text-gray-400">
+                          {timeAgo(comment._creationTime)}
+                        </span>
                       </div>
                       {currentUser?._id === comment.userId && (
                         <button
@@ -768,7 +975,7 @@ export default function ThemeDetailPage() {
             )}
 
             {/* Add comment form */}
-            {currentUser && (
+            {currentUser ? (
               <form onSubmit={handleSubmitComment} className="flex gap-3">
                 <input
                   type="text"
@@ -785,6 +992,10 @@ export default function ThemeDetailPage() {
                   {submittingComment ? "Posting..." : "Post"}
                 </button>
               </form>
+            ) : (
+              <div className="px-4 py-3 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-400">
+                Sign in to leave a comment
+              </div>
             )}
           </section>
         )}

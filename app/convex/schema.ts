@@ -55,6 +55,7 @@ export default defineSchema({
     .index("by_star_count", ["starCount"])
     .index("by_public_and_star_count", ["isPublic", "starCount"])
     .index("by_public_and_creation_time", ["isPublic"])
+    .index("by_forked_from", ["forkedFromId"])
     .searchIndex("search_name", { searchField: "name" }),
 
   stars: defineTable({

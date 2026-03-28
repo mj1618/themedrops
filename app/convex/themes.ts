@@ -116,6 +116,17 @@ export const getBasicInfo = query({
   },
 });
 
+export const countForks = query({
+  args: { themeId: v.id("themes") },
+  handler: async (ctx, args) => {
+    const forks = await ctx.db
+      .query("themes")
+      .withIndex("by_forked_from", (q) => q.eq("forkedFromId", args.themeId))
+      .collect();
+    return forks.filter((t) => t.isPublic).length;
+  },
+});
+
 export const search = query({
   args: { name: v.string() },
   handler: async (ctx, args) => {
